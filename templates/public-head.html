@@ -41,10 +41,12 @@ body { background: var(--color-bg); color: var(--color-fg); font-family: var(--f
 @media (prefers-reduced-motion: reduce) { .pa-refresh.spin svg { animation: none; } }
 #pa-refresh-msg:empty { display: none; }
 .dash-skeleton { color: transparent !important; background: color-mix(in srgb, var(--color-fg) 7%, transparent); border-radius: 6px; }
-</style>
+[hidden] { display: none !important; }
+/* 공개용 모바일: 팀 일정 위의 머리말·요약·지표는 숨긴다 */
+@media (max-width: 640px) {
+  .pa-public-bar, .pa-head, #kpis { display: none !important; }
+}</style>
 <div class="pa-shell">
 <div class="pa-public-bar">
   <span class="grow">로그인 없이 보는 공개용 사본입니다 · 1시간마다 자동 갱신 · 노션 링크는 권한이 있는 사람만 열 수 있습니다</span>
-  <span id="pa-refresh-msg" role="status"></span>
-  <button class="pa-refresh" id="pa-refresh" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a9 9 0 1 1-2.6-6.4"/><path d="M21 3v6h-6"/></svg>새로고침</button>
 </div>

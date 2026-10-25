@@ -652,8 +652,8 @@ dash.calc('org_counts', {
     const h = head.querySelector('h2');
     const sw = mk(sec, h ? h.textContent : '섹션');
     head.append(sw);
-    // 접힌 상태에서도 보여 줄 부분(요구사항: 그래프·상태 버튼·검색 / 활동기록: 그래프·검색)
-    const keep = { requests: ['#req-status', ':scope > .pa-tools'], activities: ['#act-chart', '#act-search'] }[sec.id] || [];
+    // 접힌 상태에서도 보여 줄 부분(요구사항: 상태 버튼·검색 / 활동기록: 검색)
+    const keep = { requests: ['#req-status', ':scope > .pa-tools'], activities: ['#act-search'] }[sec.id] || [];
     keep.forEach((q) => { const n = sec.querySelector(q); if (n) n.classList.add('pa-keep'); });
     // 접힌 채로 검색하거나 상태 버튼을 누르면 결과가 보이도록 자동으로 펼친다
     const open = () => { if (sec.classList.contains('pa-collapsed')) sw.click(); };
