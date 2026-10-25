@@ -29,13 +29,29 @@ if (si < 0) throw new Error('public-body.html 에 <script> 가 없습니다');
 const json = JSON.stringify(data).replace(/</g, '\\u003c');
 const trigger = '<script>window.PA_TRIGGER = ' + JSON.stringify(process.env.TRIGGER_URL || '').replace(/</g, '\\u003c') + ';</script>\n';
 
+// 안드로이드 등에서 '앱 설치'가 되도록 웹앱 설정(manifest)·아이콘·서비스 워커를 연결한다
+const appHead = [
+  '<link rel="manifest" href="manifest.webmanifest">',
+  '<link rel="icon" href="icons/icon.svg" type="image/svg+xml">',
+  '<link rel="icon" href="icons/icon-192.png" type="image/png" sizes="192x192">',
+  '<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">',
+  '<meta name="theme-color" content="#132a40">',
+  '<meta name="mobile-web-app-capable" content="yes">',
+  '<meta name="apple-mobile-web-app-title" content="PA 현황판">',
+].join('\n') + '\n';
+const swReg = "<script>if ('serviceWorker' in navigator) window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));</script>\n";
+
 const html = '<!doctype html>\n<html lang="ko">\n<head>\n<meta charset="utf-8">\n'
   + '<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">\n'
   + '<meta name="robots" content="noindex,nofollow">\n'
+  + appHead
   + head.slice(0, ti) + '\n</head>\n<body>\n'
   + head.slice(ti) + body.slice(0, si) + '\n</div>\n'
   + trigger + part('public-shim.html').replace('__PA_DATA__', () => json) + body.slice(si)
+  + swReg
   + '\n</body>\n</html>\n';
 fs.writeFileSync(path.join(dist, 'index.html'), html);
 fs.writeFileSync(path.join(dist, '.nojekyll'), '');
+// assets 폴더(웹앱 설정·아이콘·서비스 워커)를 그대로 함께 게시
+fs.cpSync(path.join(__dirname, '..', 'assets'), dist, { recursive: true });
 console.log('dist/index.html: ' + Math.round(html.length / 1024) + 'KB');
