@@ -124,6 +124,10 @@
   .pa-fold-head { display: flex; }
   .pa-collapsed > :not(.pa-card-head):not(.pa-fold-head):not(.pa-keep) { display: none !important; }
   .pa-card.pa-collapsed { gap: 0; }
+  #tasks-tbl td.wrap { min-width: 0; }
+  #tasks-tbl th, #tasks-tbl td { padding-inline: 5px; }
+  #tasks-tbl td:first-child, #tasks-tbl th:first-child { padding-left: 0; }
+  #tasks-tbl td:last-child, #tasks-tbl th:last-child { padding-right: 0; }
   .pa-card.pa-collapsed > .pa-keep ~ .pa-keep { margin-top: var(--cds-gap-sm); }
   #req-status .pa-chip[data-v="all"] { display: none; }
 }
@@ -428,6 +432,8 @@ dash.calc('org_counts', {
     if (diff <= 7) return [md(s) + ' · D-' + diff, 'warn'];
     return [md(s), ''];
   };
+  // 모바일에서는 담당을 줄여 쓴다(계속운전파트 → 계속, 운영파트 → 운영)
+  const ownerLabel = (o) => !o ? '미지정' : (window.matchMedia('(max-width: 640px)').matches ? o.replace(/운전파트$/, '').replace(/파트$/, '') : o);
   function drawTasks() {
     const d = dash.data('tasks');
     const tb = document.querySelector('#tasks-tbl tbody');
@@ -447,7 +453,7 @@ dash.calc('org_counts', {
       const t1 = el('td', 'wrap'); t1.append(link(r.url, r.name));
       const t3 = el('td', 'nw'); const [txt, cls] = dueInfo(r.due);
       t3.append(state.taskStatus === '완료✨' ? el('span', 'muted', r.due ? md(r.due) : '—') : el('span', 'pa-pill ' + cls, txt));
-      tr.append(t1, el('td', 'nw muted', r.owner || '미지정'), t3);
+      tr.append(t1, el('td', 'nw muted', ownerLabel(r.owner)), t3);
       return tr;
     }));
     if (!rows.length) emptyRow(tb, 3, '해당하는 업무가 없습니다.');
