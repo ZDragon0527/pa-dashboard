@@ -231,6 +231,23 @@
     </div>
     <div class="pa-detail" id="org-detail" hidden></div>
   </section>
+  <section class="pa-card pa-install" id="install" aria-labelledby="install-title">
+    <div class="pa-card-head"><h2 id="install-title">휴대폰에 앱처럼 설치하기</h2></div>
+    <div class="pa-install-box">
+      <p class="pa-install-os">안드로이드 · 삼성 인터넷</p>
+      <p><b>삼성 인터넷</b>으로 이 페이지를 연 뒤 아래 방법으로 설치하세요. 설치하면 앱스 화면(앱 서랍)에 아이콘이 생기고 앱처럼 실행됩니다.</p>
+      <ol>
+        <li>주소창 오른쪽에 <b>설치 아이콘(↓)</b>이 보이면 눌러 <b>설치</b>를 선택합니다.</li>
+        <li>아이콘이 없으면 하단 <b>메뉴(≡)</b> → <b>현재 페이지 추가</b>에서 <b>홈 화면</b>을 고릅니다.</li>
+      </ol>
+      <p class="pa-install-note">Chrome에서는 메뉴(⋮) → <b>앱 설치</b> 또는 <b>홈 화면에 추가</b>를 누르세요.</p>
+      <button class="pa-install-btn" id="pa-install-btn" type="button" hidden>지금 바로 설치</button>
+    </div>
+    <div class="pa-install-box">
+      <p class="pa-install-os">아이폰 · Safari</p>
+      <p>하단의 <b>공유 버튼(□↑)</b> → <b>홈 화면에 추가</b>를 누르세요.</p>
+    </div>
+  </section>
 </div>
 
 <script>
@@ -652,7 +669,7 @@ dash.calc('org_counts', {
     return b;
   };
   document.querySelectorAll('.pa-card').forEach((sec) => {
-    if (sec.id === 'orgs') return;
+    if (sec.id === 'orgs' || sec.id === 'install') return;
     const head = sec.querySelector(':scope > .pa-card-head');
     if (!head) return;
     const h = head.querySelector('h2');
@@ -668,6 +685,26 @@ dash.calc('org_counts', {
       n.addEventListener('change', open);
       n.addEventListener('click', (e) => { if (e.target.closest('button')) open(); });
     });
+  });
+})();
+</script>
+
+<script>
+// 설치 안내: 앱으로 설치해 실행 중이면 숨기고, 브라우저가 설치를 지원하면 '지금 바로 설치' 버튼을 보인다
+(function () {
+  const sec = document.getElementById('install'), btn = document.getElementById('pa-install-btn');
+  const installed = () => window.matchMedia('(display-mode: standalone), (display-mode: fullscreen), (display-mode: minimal-ui)').matches || window.navigator.standalone === true;
+  const hide = () => { if (sec) sec.hidden = true; };
+  if (installed()) hide();
+  let deferred = null;
+  window.addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); deferred = e; if (btn) btn.hidden = false; });
+  window.addEventListener('appinstalled', () => { deferred = null; hide(); });
+  if (btn) btn.addEventListener('click', async () => {
+    if (!deferred) return;
+    deferred.prompt();
+    const r = await deferred.userChoice.catch(() => null);
+    deferred = null; btn.hidden = true;
+    if (r && r.outcome === 'accepted') hide();
   });
 })();
 </script>

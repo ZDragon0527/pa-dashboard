@@ -42,6 +42,18 @@ body { background: var(--color-bg); color: var(--color-fg); font-family: var(--f
 #pa-refresh-msg:empty { display: none; }
 .dash-skeleton { color: transparent !important; background: color-mix(in srgb, var(--color-fg) 7%, transparent); border-radius: 6px; }
 [hidden] { display: none !important; }
+/* 설치 안내: 휴대폰 화면에서만, 앱으로 실행 중이면 숨김 */
+.pa-install { display: none; }
+.pa-install-box { border: 1px solid var(--color-border-line); border-radius: var(--cds-radius); padding: var(--cds-pad-md); background: color-mix(in srgb, var(--color-fg) 3%, var(--color-panel)); font-size: 13px; line-height: 1.6; color: var(--color-fg-muted); display: grid; gap: 6px; }
+.pa-install-box p, .pa-install-box ol { margin: 0; }
+.pa-install-box ol { padding-left: 1.2em; display: grid; gap: 4px; }
+.pa-install-box b { color: var(--color-fg); font-weight: 600; }
+.pa-install-os { font-weight: 700; color: var(--color-fg) !important; }
+.pa-install-note { font-size: 12px; }
+.pa-install-btn { justify-self: start; margin-top: 4px; font: inherit; font-size: 13px; font-weight: 600; padding: 8px 14px; border-radius: 8px; border: 0; background: var(--color-ok); color: var(--color-bg); cursor: pointer; }
+.pa-install-btn:focus-visible { outline: 2px solid var(--color-fg); outline-offset: 2px; }
+@media (max-width: 640px) { .pa-install:not([hidden]) { display: grid; } }
+@media (display-mode: standalone), (display-mode: fullscreen), (display-mode: minimal-ui) { .pa-install { display: none !important; } }
 /* 공개용 모바일: 팀 일정 위의 머리말·요약·지표는 숨긴다 */
 @media (max-width: 640px) {
   .pa-public-bar, .pa-head, #kpis { display: none !important; }
