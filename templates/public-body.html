@@ -1,0 +1,667 @@
+<style>
+.pa { font-family: var(--font-anthropic-sans); display: grid; gap: var(--cds-gap-lg); padding-block: var(--cds-pad-md) var(--cds-pad-xl); }
+.pa a { color: inherit; text-decoration: none; }
+.pa a:hover { text-decoration: underline; }
+.pa-head > div:first-child { flex: 1 1 22rem; min-width: 0; }
+.pa-head { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: var(--cds-gap-md); }
+.pa-head h1 { font-family: var(--font-anthropic-serif); font-weight: 400; font-size: var(--cds-font-size-title); margin: 0; text-wrap: balance; }
+.pa-take { margin: var(--cds-gap-sm) 0 0; padding: var(--cds-pad-md) var(--cds-pad-lg); max-width: 72ch; font-size: var(--cds-font-size-heading); line-height: 1.6; color: var(--color-fg); background: color-mix(in srgb, var(--color-ok) 9%, var(--color-panel)); border: 1px solid color-mix(in srgb, var(--color-ok) 30%, var(--color-border-line)); border-radius: var(--cds-radius); text-wrap: pretty; }
+.pa-take b { color: var(--color-fg); font-weight: 700; }
+.pa-take-line { display: block; }
+.pa-take-line + .pa-take-line { margin-top: var(--cds-gap-xs); }
+.pa-today { font-size: var(--cds-font-size-caption); color: var(--color-fg-muted); font-variant-numeric: tabular-nums; text-align: right; display: grid; gap: 2px; }
+
+.pa-kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 9.5rem), 1fr)); gap: var(--cds-gap-md); }
+.pa-kpi { background: var(--color-panel); border: 1px solid var(--color-border-line); border-radius: var(--cds-radius); padding: var(--cds-pad-md) var(--cds-pad-lg); display: grid; gap: var(--cds-gap-xs); align-content: start; }
+.pa-kpi .lbl { font-size: var(--cds-font-size-caption); color: var(--color-fg-muted); }
+.pa-kpi .val { font-family: var(--font-anthropic-serif); font-weight: 400; font-size: var(--cds-font-size-title); font-variant-numeric: tabular-nums; line-height: 1.1; min-height: 1.1em; }
+.pa-kpi .sub { font-size: var(--cds-font-size-caption); color: var(--color-fg-muted); }
+.pa-kpi.alert .val { color: var(--color-bad); }
+
+.pa-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 26rem), 1fr)); gap: var(--cds-gap-md); }
+.pa-card { background: var(--color-panel); border: 1px solid var(--color-border-line); border-radius: var(--cds-radius); padding: var(--cds-pad-lg); display: grid; gap: var(--cds-gap-md); align-content: start; min-width: 0; }
+.pa-card-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: var(--cds-gap-sm); }
+.pa-card h2 { font-size: var(--cds-font-size-heading); font-weight: var(--cds-font-weight-medium); margin: 0; }
+.pa-note { font-size: var(--cds-font-size-caption); color: var(--color-fg-muted); margin: 0; }
+
+.pa-chips { display: flex; flex-wrap: wrap; gap: var(--cds-gap-xs); }
+.pa-chip { font: inherit; font-size: var(--cds-font-size-caption); padding: 2px 10px; border-radius: 999px; border: 1px solid var(--color-border-line); background: transparent; color: var(--color-fg-muted); cursor: pointer; font-variant-numeric: tabular-nums; }
+.pa-chip:hover { color: var(--color-fg); }
+.pa-chip[aria-pressed="true"] { background: var(--color-fg); color: var(--color-bg); border-color: var(--color-fg); }
+.pa-chip.tone { --on: var(--color-bg); border-color: var(--c); background: color-mix(in srgb, var(--c) 16%, transparent); color: var(--color-fg); }
+.pa-chip.tone:hover { background: color-mix(in srgb, var(--c) 30%, transparent); }
+.pa-chip.tone[aria-pressed="true"] { background: var(--c); border-color: var(--c); color: var(--on); font-weight: 500; }
+.pa-chip:focus-visible, .pa-input:focus-visible, .pa-select:focus-visible, .pa tr[data-key]:focus-visible { outline: 2px solid var(--color-fg); outline-offset: 2px; }
+
+.pa-input, .pa-select { font: inherit; font-size: var(--cds-font-size-body); padding: 6px 10px; border-radius: var(--cds-radius); border: 1px solid var(--color-border-line); background: var(--color-bg); color: var(--color-fg); min-width: 0; }
+.pa-input { flex: 1 1 14rem; }
+.pa-tools { display: flex; flex-wrap: wrap; gap: var(--cds-gap-sm); align-items: center; }
+
+/* agenda */
+.pa-agenda { display: grid; gap: var(--cds-gap-md); max-height: 30rem; overflow: auto; min-height: 8rem; }
+.pa-day { display: grid; grid-template-columns: 4.2rem 1fr; gap: var(--cds-gap-sm); }
+.pa-day-lbl { font-size: var(--cds-font-size-caption); color: var(--color-fg-muted); font-variant-numeric: tabular-nums; padding-top: 3px; }
+.pa-day-lbl b { display: block; font-size: var(--cds-font-size-body); color: var(--color-fg); font-weight: 500; }
+.pa-day.is-today .pa-day-lbl b { color: var(--color-bad); }
+.pa-day.is-weekend .pa-day-lbl { opacity: .75; }
+.pa-evs { display: grid; gap: 4px; min-width: 0; }
+.pa-ev { display: grid; grid-template-columns: 3.2rem auto 1fr; gap: var(--cds-gap-xs); align-items: baseline; font-size: var(--cds-font-size-body); min-width: 0; }
+.pa-ev .t { font-size: var(--cds-font-size-caption); color: var(--color-fg-muted); font-variant-numeric: tabular-nums; }
+.pa-ev .ttl { min-width: 0; overflow-wrap: anywhere; }
+.pa-ev .loc { color: var(--color-fg-muted); font-size: var(--cds-font-size-caption); }
+.pa-ev.dim .ttl { color: var(--color-fg-muted); }
+
+.pa-tag { font-size: 11px; padding: 0 6px; border-radius: 4px; white-space: nowrap; border: 1px solid var(--color-border-line); color: var(--color-fg-muted); line-height: 1.6; }
+.pa-tag.ext { border-color: transparent; background: color-mix(in srgb, var(--color-ok) 16%, transparent); color: var(--color-ok); }
+.pa-tag.todo { border-style: dashed; }
+.pa-tag.off { color: var(--color-warn); border-color: transparent; background: color-mix(in srgb, var(--color-warn) 14%, transparent); }
+
+/* tables */
+.pa-tbl-wrap { overflow: auto; max-height: 26rem; min-height: 8rem; }
+.pa table { width: 100%; border-collapse: collapse; font-size: var(--cds-font-size-body); font-variant-numeric: tabular-nums; }
+.pa th { position: sticky; top: 0; background: var(--color-panel); text-align: left; font-weight: 500; font-size: var(--cds-font-size-caption); color: var(--color-fg-muted); padding: 6px 8px; border-bottom: 1px solid var(--color-border-line); white-space: nowrap; z-index: 1; }
+.pa td { padding: 7px 8px; border-bottom: 1px solid var(--color-border-line); vertical-align: top; }
+.pa td.wrap { min-width: 12rem; overflow-wrap: anywhere; }
+.pa td.nw { white-space: nowrap; }
+.pa td.num, .pa th.num { text-align: right; }
+.pa tr[data-key] { cursor: default; }
+.pa .orgs tr[data-key] { cursor: pointer; }
+.pa .orgs tr[data-key]:hover td, .pa .orgs tr.sel td { background: color-mix(in srgb, var(--color-fg) 5%, transparent); }
+.pa .muted { color: var(--color-fg-muted); }
+
+.pa-pill { display: inline-block; font-size: 11px; padding: 0 7px; border-radius: 999px; line-height: 1.7; white-space: nowrap; background: color-mix(in srgb, var(--color-fg) 8%, transparent); color: var(--color-fg-muted); }
+.pa-pill.bad { background: color-mix(in srgb, var(--color-bad) 15%, transparent); color: var(--color-bad); }
+.pa-pill.warn { background: color-mix(in srgb, var(--color-warn) 16%, transparent); color: var(--color-warn); }
+.pa-pill.ok { background: color-mix(in srgb, var(--color-ok) 15%, transparent); color: var(--color-ok); }
+
+/* status bar */
+.pa-stack { display: flex; height: 10px; border-radius: 5px; overflow: hidden; gap: 2px; min-height: 10px; }
+.pa-stack span { display: block; height: 100%; }
+.pa-legend { display: flex; flex-wrap: wrap; gap: var(--cds-gap-sm) var(--cds-gap-md); font-size: var(--cds-font-size-caption); color: var(--color-fg-muted); }
+.pa-legend i { display: inline-block; width: 8px; height: 8px; border-radius: 2px; margin-right: 5px; vertical-align: baseline; }
+
+/* chart */
+.pa-chart { position: relative; min-height: 150px; }
+.pa-tip { position: absolute; pointer-events: none; background: var(--cds-surface-popover); border: 1px solid var(--cds-border); border-radius: var(--cds-radius); box-shadow: var(--cds-shadow-popover); padding: var(--cds-pad-xs) var(--cds-pad-sm); font-size: var(--cds-font-size-caption); white-space: nowrap; }
+.pa-tip .d { color: var(--cds-text-secondary); }
+
+/* activity list */
+.pa-range { display: inline-flex; flex-wrap: wrap; align-items: center; gap: var(--cds-gap-xs); font-size: var(--cds-font-size-caption); color: var(--color-fg-muted); }
+.pa-range input { font-size: var(--cds-font-size-caption); padding: 4px 6px; }
+.pa-act mark { background: color-mix(in srgb, var(--color-warn) 28%, transparent); color: inherit; border-radius: 2px; }
+.pa-acts { display: grid; gap: var(--cds-gap-sm); max-height: 22rem; overflow: auto; min-height: 6rem; }
+.pa-act { display: grid; gap: 2px; padding-bottom: var(--cds-gap-sm); border-bottom: 1px solid var(--color-border-line); }
+.pa-act-top { display: flex; flex-wrap: wrap; gap: var(--cds-gap-xs); align-items: baseline; }
+.pa-act-top .when { font-size: var(--cds-font-size-caption); color: var(--color-fg-muted); font-variant-numeric: tabular-nums; min-width: 5.5rem; }
+.pa-act-top .ttl { font-weight: 500; overflow-wrap: anywhere; }
+.pa-act p { margin: 0; font-size: var(--cds-font-size-caption); color: var(--color-fg-muted); overflow-wrap: anywhere; }
+.pa-act.empty-detail .ttl { color: var(--color-fg-muted); font-weight: 400; }
+
+/* org detail */
+.pa-detail { border: 1px solid var(--color-border-line); border-radius: var(--cds-radius); padding: var(--cds-pad-md); display: grid; gap: var(--cds-gap-xs); font-size: var(--cds-font-size-body); }
+.pa-detail h3 { margin: 0; font-size: var(--cds-font-size-heading); font-weight: var(--cds-font-weight-medium); }
+.pa-detail dl { display: grid; grid-template-columns: 6rem 1fr; gap: 4px var(--cds-gap-sm); margin: 0; }
+.pa-detail dt { color: var(--color-fg-muted); font-size: var(--cds-font-size-caption); padding-top: 2px; }
+.pa-detail dd { margin: 0; overflow-wrap: anywhere; }
+
+.pa .fail { display: flex; align-items: center; justify-content: center; gap: 6px; color: var(--color-fg-muted); font-size: var(--cds-font-size-caption); min-height: 6rem; }
+.pa .fail::before { content: ""; width: .375rem; height: .375rem; border-radius: 50%; background: var(--color-bad); }
+.pa .empty { color: var(--color-fg-muted); font-size: var(--cds-font-size-caption); padding: var(--cds-pad-sm) 0; }
+.pa [data-dash-source-state=empty] { color: transparent; }
+.pa [data-dash-source-state=refreshing] { opacity: .5; transition: opacity var(--cds-dur-slow); }
+
+/* mobile section fold switches */
+.pa-fold { display: none; margin-left: auto; align-items: center; gap: 6px; font: inherit; font-size: var(--cds-font-size-caption); color: var(--color-fg-muted); background: none; border: 0; padding: 4px 0; cursor: pointer; }
+.pa-fold .trk { position: relative; width: 32px; height: 18px; border-radius: 9px; background: var(--color-border-line); transition: background .2s; flex: none; }
+.pa-fold .trk::after { content: ""; position: absolute; top: 2px; left: 2px; width: 14px; height: 14px; border-radius: 50%; background: var(--color-bg); box-shadow: 0 1px 2px rgba(0,0,0,.35); transition: transform .2s; }
+.pa-fold[aria-checked="true"] .trk { background: var(--color-ok); }
+.pa-fold[aria-checked="true"] .trk::after { transform: translateX(14px); }
+.pa-fold:focus-visible { outline: 2px solid var(--color-fg); outline-offset: 2px; border-radius: 4px; }
+.pa-fold-head { display: none; grid-column: 1 / -1; align-items: center; justify-content: space-between; gap: var(--cds-gap-sm); }
+.pa-fold-title { font-size: var(--cds-font-size-heading); font-weight: var(--cds-font-weight-medium); }
+@media (max-width: 640px) {
+  .pa-fold { display: inline-flex; }
+  .pa-fold-head { display: flex; }
+  .pa-collapsed > :not(.pa-card-head):not(.pa-fold-head):not(.pa-keep) { display: none !important; }
+  .pa-card.pa-collapsed { gap: 0; }
+  .pa-card.pa-collapsed > .pa-keep ~ .pa-keep { margin-top: var(--cds-gap-sm); }
+  #req-status .pa-chip[data-v="all"] { display: none; }
+}
+@media (prefers-reduced-motion: reduce) { .pa-fold .trk, .pa-fold .trk::after { transition: none; } }</style>
+
+<div class="pa">
+  <header class="pa-head" id="top">
+    <div>
+      <h1>PA 업무 현황판</h1>
+      <p class="pa-take" id="takeaway">팀 일정, 업무, 요구사항, 활동기록을 한 화면에서 봅니다.</p>
+    </div>
+    <div class="pa-today"><div id="today-label"></div><div id="snap-label" data-source="snapshot" data-field="at" data-row="0">—</div></div>
+  </header>
+
+  <section class="pa-kpis" id="kpis" aria-label="핵심 지표">
+    <div class="pa-kpi"><span class="lbl">진행 중 업무</span><span class="val dash-skeleton" id="k-doing" data-source="task_stats" data-field="n" data-where="status=진행 중⏳️">—</span><span class="sub">팀 업무 추진현황</span></div>
+    <div class="pa-kpi" id="k-over-box"><span class="lbl">마감 지난 업무</span><span class="val dash-skeleton" id="k-over" data-source="task_overdue" data-field="n" data-row="0">—</span><span class="sub">진행 중 중 마감일 경과</span></div>
+    <div class="pa-kpi" id="k-open-box"><span class="lbl">미조치 요구사항</span><span class="val dash-skeleton" id="k-open" data-source="req_stats" data-field="n" data-where="status=미조치">—</span><span class="sub">검토중 <span id="k-review" data-source="req_stats" data-field="n" data-where="status=검토중">—</span>건 별도</span></div>
+    <div class="pa-kpi"><span class="lbl">요구사항 조치율</span><span class="val dash-skeleton" id="k-rate" data-source="req_summary" data-field="done_rate" data-row="0">—</span><span class="sub">전체 <span id="k-total" data-source="req_summary" data-field="total" data-row="0">—</span>건 중 조치완료</span></div>
+  </section>
+
+  <div class="pa-grid">
+    <section class="pa-card" id="schedule">
+      <div class="pa-card-head">
+        <h2>팀 일정</h2>
+        <div class="pa-chips" id="cal-mode" role="group" aria-label="일정 보기">
+          <button class="pa-chip" type="button" data-mode="ext" aria-pressed="true">대외활동만</button>
+          <button class="pa-chip" type="button" data-mode="all" aria-pressed="false">전체</button>
+        </div>
+      </div>
+      <p class="pa-note">PA추진팀 캘린더 · 저장 시점부터 2주</p>
+      <div class="pa-agenda" id="agenda" data-source="calendar"></div>
+    </section>
+
+    <section class="pa-card" id="tasks-card">
+      <div class="pa-card-head">
+        <h2>팀 업무 추진현황</h2>
+        <div class="pa-chips" id="task-status" role="group" aria-label="상태"></div>
+      </div>
+      <div class="pa-chips" id="task-owner" role="group" aria-label="담당"></div>
+      <div class="pa-tbl-wrap">
+        <table id="tasks-tbl" data-source="tasks" data-row-key="url">
+          <thead><tr><th data-field="name">업무</th><th data-field="owner">담당</th><th data-field="due">마감</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </section>
+  </div>
+
+  <div class="pa-grid">
+    <section class="pa-card" id="requests">
+      <div class="pa-card-head">
+        <h2>요구사항 처리현황</h2>
+        <span class="pa-note" id="req-count"></span>
+      </div>
+      <div class="pa-chips" id="req-status" role="group" aria-label="처리 상태"></div>
+      <div class="pa-tools"><input class="pa-input" id="req-q" type="search" placeholder="요구내용 검색" aria-label="요구사항 검색"></div>
+      <div class="pa-tbl-wrap">
+        <table id="reqs-tbl" data-source="reqs" data-row-key="url">
+          <thead><tr><th data-field="title">요구내용</th><th data-field="kind">유형</th><th data-field="owners">담당</th><th data-field="raised">제기일</th><th data-field="status">상태</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="pa-card" id="activities">
+      <div class="pa-card-head">
+        <h2>활동기록</h2>
+        <span class="pa-note">주별 활동 건수 · 최근 한 달과 다음 2주</span>
+      </div>
+      <div class="pa-chart" id="act-chart" data-source="act_weeks"></div>
+      <div class="pa-tools pa-act-search" id="act-search">
+        <input class="pa-input" id="act-q" type="search" placeholder="전체 활동기록 검색 (제목·요약·참석자)" aria-label="활동기록 검색">
+        <label class="pa-range"><span>기간</span><input class="pa-select" id="act-from" type="date" min="2000-01-01" max="2099-12-31" aria-label="검색 시작일"><span>~</span><input class="pa-select" id="act-to" type="date" min="2000-01-01" max="2099-12-31" aria-label="검색 종료일"></label>
+        <button class="pa-chip" type="button" id="act-clear" hidden>검색 지우기</button>
+      </div>
+      <p class="pa-note" id="act-note">최근 한 달 활동만 보여줍니다. 검색어나 기간을 넣으면 전체 활동기록에서 찾습니다.</p>
+      <div class="pa-chips" id="act-mode" role="group" aria-label="활동 보기">
+        <button class="pa-chip" type="button" data-mode="past" aria-pressed="true">최근 한 달</button>
+        <button class="pa-chip" type="button" data-mode="todo" aria-pressed="false">기록 미작성</button>
+        <button class="pa-chip" type="button" data-mode="next" aria-pressed="false">예정</button>
+      </div>
+      <div class="pa-acts" id="act-list" data-source="activities"></div>
+    </section>
+  </div>
+
+  <section class="pa-card" id="orgs">
+    <div class="pa-card-head">
+      <h2>단체 마스터 검색</h2>
+      <span class="pa-note" id="org-count"></span>
+    </div>
+    <div class="pa-tools">
+      <input class="pa-input" id="org-q" type="search" placeholder="단체명, 별칭, 주요 인물로 검색" aria-label="단체 검색">
+    </div>
+    <p class="pa-note" id="org-hint">단체명, 별칭, 주요 인물로 검색하면 결과가 여기에 나옵니다.</p>
+    <div class="pa-tbl-wrap orgs" id="org-results" hidden>
+      <table id="orgs-tbl" data-source="orgs" data-row-key="url">
+        <thead><tr><th data-field="name">단체명</th><th data-field="kind">유형</th><th data-field="regions">지역</th><th data-field="people">주요 인물</th><th class="num" data-source="org_counts" data-field="acts">활동</th><th class="num" data-source="org_counts" data-field="reqs">요구</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+    <div class="pa-detail" id="org-detail" hidden></div>
+  </section>
+</div>
+
+<script>
+dash.calc('task_stats', {
+  inputs: ['tasks'],
+  title: '상태별 업무 수',
+  description: '이름이 있는 업무를 상태별로 센 건수 (상태가 비면 미지정)',
+  fn: (tasks) => { const m = new Map(); tasks.filter((t) => t.name).forEach((t) => { const k = t.status || '미지정'; m.set(k, (m.get(k) || 0) + 1); }); return [...m].map(([status, n]) => ({ status, n })); },
+});
+
+dash.calc('task_overdue', {
+  inputs: ['tasks'],
+  title: '마감 지난 진행 중 업무 수',
+  description: '상태가 진행 중⏳️이고 마감일이 오늘(한국시간)보다 이전인 업무 수',
+  fn: (tasks) => {
+    const today = new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Seoul' });
+    return [{ n: tasks.filter((t) => t.name && t.status === '진행 중⏳️' && t.due && t.due.slice(0, 10) < today).length }];
+  },
+});
+
+dash.calc('req_stats', {
+  inputs: ['reqs'],
+  title: '처리 상태별 요구사항 수',
+  description: '요구사항을 상태별로 센 건수 (상태가 비면 미분류)',
+  fn: (reqs) => { const m = new Map(); reqs.forEach((r) => { const k = r.status || '미분류'; m.set(k, (m.get(k) || 0) + 1); }); return [...m].map(([status, n]) => ({ status, n })); },
+});
+
+dash.calc('req_summary', {
+  inputs: ['reqs'],
+  title: '요구사항 조치율',
+  description: '전체 요구사항 수와 그중 상태가 조치완료인 비율',
+  fn: (reqs) => [{ total: reqs.length, done_rate: reqs.length ? reqs.filter((r) => r.status === '조치완료').length / reqs.length : 0 }],
+});
+
+dash.calc('act_weeks', {
+  inputs: ['activities'],
+  title: '주별 활동 건수',
+  description: '활동 일시를 한국시간으로 바꿔 월요일 시작 주로 묶고, 최근 30일부터 향후 14일까지의 주별 건수를 셉니다',
+  fn: (activities) => {
+    const kstDay = (r) => r.is_datetime ? new Date(r.start).toLocaleDateString('sv-SE', { timeZone: 'Asia/Seoul' }) : String(r.start).slice(0, 10);
+    const shift = (s, n) => { const d = new Date(s + 'T00:00:00Z'); d.setUTCDate(d.getUTCDate() + n); return d.toISOString().slice(0, 10); };
+    const monday = (s) => shift(s, -((new Date(s + 'T00:00:00Z').getUTCDay() + 6) % 7));
+    const today = new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Seoul' });
+    const from = shift(today, -30), to = shift(today, 14);
+    const days = activities.filter((r) => r.start).map(kstDay).filter((d) => d >= from && d <= to);
+    const m = new Map(); days.forEach((d) => { const w = monday(d); m.set(w, (m.get(w) || 0) + 1); }); return [...m].map(([week, n]) => ({ week, n })).sort((a, b) => (a.week < b.week ? -1 : 1));
+  },
+});
+
+dash.calc('org_counts', {
+  inputs: ['orgs'],
+  title: '단체별 활동·요구 연결 수',
+  description: '단체마다 연결된 활동기록 수와 요구사항 수',
+  fn: (orgs) => {
+    const len = (v) => { if (!v) return 0; try { const x = JSON.parse(v); return Array.isArray(x) ? x.length : 0; } catch (e) { return 0; } };
+    return orgs.map((o) => ({ url: o.url, acts: len(o.act_links), reqs: len(o.req_links) }));
+  },
+});
+
+(function () {
+  const TZ = 'Asia/Seoul';
+  const ymd = (d) => d.toLocaleDateString('sv-SE', { timeZone: TZ });
+  const today = ymd(new Date());
+  const addDays = (s, n) => { const d = new Date(s + 'T00:00:00Z'); d.setUTCDate(d.getUTCDate() + n); return d.toISOString().slice(0, 10); };
+  const WD = ['일', '월', '화', '수', '목', '금', '토'];
+  const wd = (s) => WD[new Date(s + 'T00:00:00Z').getUTCDay()];
+  const md = (s) => +s.slice(5, 7) + '/' + +s.slice(8, 10);
+  const parseArr = (v) => { if (!v) return []; try { const x = JSON.parse(v); return Array.isArray(x) ? x : [String(x)]; } catch (e) { return [String(v)]; } };
+  const el = (tag, cls, text) => { const n = document.createElement(tag); if (cls) n.className = cls; if (text != null) n.textContent = text; return n; };
+  const link = (href, text) => { const a = el('a', null, text); if (href) { a.href = href; a.target = '_blank'; a.rel = 'noopener'; } return a; };
+  const fail = (box) => { box.replaceChildren(el('div', 'fail', 'Failed to load')); };
+  const failRow = (tb, cols) => { const tr = el('tr'); const td = el('td'); td.colSpan = cols; fail(td); tr.append(td); tb.replaceChildren(tr); };
+  const emptyRow = (tb, cols, msg) => { const tr = el('tr'); const td = el('td', 'empty', msg); td.colSpan = cols; tr.append(td); tb.append(tr); };
+  const pct = d3.format('.1%');
+  const kst = (r) => {
+    if (!r.start) return '';
+    if (!r.is_datetime) return String(r.start).slice(0, 10);
+    return new Date(r.start).toLocaleString('sv-SE', { timeZone: TZ }).replace(' ', 'T').slice(0, 16);
+  };
+
+  document.getElementById('today-label').textContent = today.replace(/-/g, '.') + ' (' + wd(today) + ') 기준';
+
+
+  const state = { cal: 'ext', taskStatus: '진행 중⏳️', taskOwner: '', reqStatus: 'open', reqQ: '', act: 'past', actQ: '', actFrom: '', actTo: '', orgQ: '', orgSel: null };
+
+  const OFF = /^\s*\((회의|교육[^)]*|휴가|휴무|반차|참고|참조|내부|ToDo|점심)\)/;
+  const isOff = (t) => OFF.test(t) || /휴가|휴무|반차/.test(t);
+  const splitTag = (t) => { const m = t.match(/^\s*\(([^)]+)\)\s*(.*)$/); return m ? [m[1], m[2] || t] : ['', t]; };
+  const tagClass = (tag) => /^ToDo$/.test(tag) ? 'todo' : /휴가|휴무|반차/.test(tag) ? 'off' : /^(회의|교육|참고|참조|내부|점심)/.test(tag) ? '' : 'ext';
+  const pressGroup = (box, attr, val) => box.querySelectorAll('.pa-chip').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset[attr] === val)));
+  const chip = (v, label, on) => { const b = el('button', 'pa-chip', label); b.type = 'button'; b.dataset.v = v; b.setAttribute('aria-pressed', String(on)); return b; };
+
+  // ---- controls
+  const onChip = (id, fn) => document.getElementById(id).addEventListener('click', (e) => { const b = e.target.closest('.pa-chip'); if (b) fn(b); });
+  onChip('cal-mode', (b) => { state.cal = b.dataset.mode; drawCalendar(); });
+  onChip('act-mode', (b) => { state.act = b.dataset.mode; drawActs(); });
+  const actQ = document.getElementById('act-q'), actFrom = document.getElementById('act-from'), actTo = document.getElementById('act-to');
+  actQ.addEventListener('input', () => { state.actQ = actQ.value.trim().toLowerCase(); drawActs(); });
+  [[actFrom, 'actFrom'], [actTo, 'actTo']].forEach(([inp, key]) => {
+    inp.addEventListener('change', () => { if (!inp.value || inp.validity.valid) { state[key] = inp.value; drawActs(); } });
+    inp.addEventListener('blur', () => { inp.value = state[key]; });
+  });
+  document.getElementById('act-clear').addEventListener('click', () => { state.actQ = state.actFrom = state.actTo = ''; actQ.value = actFrom.value = actTo.value = ''; drawActs(); });
+  onChip('task-status', (b) => { state.taskStatus = b.dataset.v; drawTasks(); });
+  onChip('task-owner', (b) => { state.taskOwner = b.dataset.v; drawTasks(); });
+  onChip('req-status', (b) => { state.reqStatus = b.dataset.v; drawReqs(); });
+  document.getElementById('req-q').addEventListener('input', (e) => { state.reqQ = e.target.value.trim().toLowerCase(); drawReqs(); });
+  document.getElementById('org-q').addEventListener('input', (e) => { state.orgQ = e.target.value.trim().toLowerCase(); drawOrgs(); });
+  const orgTbl = document.getElementById('orgs-tbl');
+  const pickOrg = (tr) => { if (!tr) return; state.orgSel = state.orgSel === tr.dataset.key ? null : tr.dataset.key; drawOrgs(); };
+  orgTbl.addEventListener('click', (e) => { if (e.target.closest('a')) return; pickOrg(e.target.closest('tr[data-key]')); });
+  orgTbl.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); pickOrg(e.target.closest('tr[data-key]')); } });
+
+  // ---- KPIs
+  function drawKpis() {
+    const set = (id, s, txt) => { const n = document.getElementById(id); n.classList.toggle('dash-skeleton', s === 'loading'); n.textContent = s === 'ok' ? txt : '—'; };
+    const ts = dash.data('task_stats'), to = dash.data('task_overdue'), rs = dash.data('req_stats'), rm = dash.data('req_summary');
+    const nOf = (rows, status) => { const r = rows.find((row) => row.status === status); return r ? r.n : 0; };
+    set('k-doing', ts.status, ts.status === 'ok' ? String(nOf(ts.data, '진행 중⏳️')) : '');
+    const over = to.status === 'ok' && to.data[0] ? to.data[0].n : 0;
+    set('k-over', to.status, String(over));
+    document.getElementById('k-over-box').classList.toggle('alert', over > 0);
+    const open = rs.status === 'ok' ? nOf(rs.data, '미조치') : 0;
+    set('k-open', rs.status, String(open));
+    document.getElementById('k-review').textContent = rs.status === 'ok' ? String(nOf(rs.data, '검토중')) : '—';
+    document.getElementById('k-open-box').classList.toggle('alert', open > 0);
+    set('k-rate', rm.status, rm.status === 'ok' && rm.data[0] ? pct(rm.data[0].done_rate) : '');
+    document.getElementById('k-total').textContent = rm.status === 'ok' && rm.data[0] ? String(rm.data[0].total) : '—';
+  }
+
+  // ---- takeaway
+  function drawTakeaway() {
+    const p = document.getElementById('takeaway');
+    const c = dash.data('calendar'), t = dash.data('tasks');
+    const parts = [];
+    if (c.status === 'ok') {
+      const nowIso = new Date().toLocaleString('sv-SE', { timeZone: TZ }).replace(' ', 'T').slice(0, 16);
+      const next = c.data.find((r) => !isOff(r.title) && (r.all_day ? r.start.slice(0, 10) >= today : r.start.slice(0, 16) >= nowIso));
+      if (next) {
+        const s = el('span'); s.append('다음 대외일정은 ');
+        const b = el('b', null, next.title); b.dataset.source = 'calendar'; b.dataset.field = 'title'; b.dataset.where = 'id=' + encodeURIComponent(next.id);
+        s.append(b, ' (' + md(next.start.slice(0, 10)) + ' ' + wd(next.start.slice(0, 10)) + (next.all_day ? '' : ' ' + next.start.slice(11, 16)) + ')');
+        parts.push(s);
+      }
+    }
+    if (t.status === 'ok') {
+      const due = t.data.filter((r) => r.name && r.status === '진행 중⏳️' && r.due && r.due.slice(0, 10) >= today).sort((a, b) => (a.due < b.due ? -1 : 1))[0];
+      if (due) {
+        const s = el('span'); s.append('가장 가까운 업무 마감은 ');
+        const b = el('b', null, due.name); b.dataset.source = 'tasks'; b.dataset.field = 'name'; b.dataset.where = 'url=' + encodeURIComponent(due.url);
+        s.append(b, ' (' + (due.due.slice(0, 10) === today ? '오늘' : md(due.due)) + ')');
+        parts.push(s);
+      }
+    }
+    if (!parts.length) return;
+    p.replaceChildren();
+    parts.forEach((s) => { s.className = 'pa-take-line'; s.append('입니다.'); p.append(s); });
+  }
+
+  // ---- calendar agenda
+  function drawCalendar() {
+    pressGroup(document.getElementById('cal-mode'), 'mode', state.cal);
+    const box = document.getElementById('agenda');
+    const d = dash.data('calendar');
+    if (d.status === 'error' || d.status === 'connect' || d.status === 'declined') { box.classList.remove('dash-skeleton'); return fail(box); }
+    if (d.status !== 'ok') { box.replaceChildren(); box.classList.add('dash-skeleton'); return; }
+    box.classList.remove('dash-skeleton');
+    const rows = d.data.filter((r) => r.start.slice(0, 10) >= today && (state.cal === 'all' || !isOff(r.title)));
+    const days = d3.group(rows, (r) => r.start.slice(0, 10));
+    box.replaceChildren();
+    if (!rows.length) { box.append(el('div', 'empty', '이 기간에 해당하는 일정이 없습니다.')); return; }
+    [...days.keys()].sort().forEach((day) => {
+      const dow = new Date(day + 'T00:00:00Z').getUTCDay();
+      const wrap = el('div', 'pa-day' + (day === today ? ' is-today' : '') + (dow === 0 || dow === 6 ? ' is-weekend' : ''));
+      const lbl = el('div', 'pa-day-lbl'); lbl.append(el('b', null, md(day)), (day === today ? '오늘 · ' : '') + wd(day));
+      const list = el('div', 'pa-evs');
+      days.get(day).sort((a, b) => (a.all_day === b.all_day ? (a.start < b.start ? -1 : 1) : a.all_day ? -1 : 1)).forEach((r) => {
+        const [tag, rest] = splitTag(r.title);
+        const row = el('div', 'pa-ev' + (isOff(r.title) ? ' dim' : ''));
+        row.append(el('span', 't', r.all_day ? '종일' : r.start.slice(11, 16)));
+        row.append(tag ? el('span', 'pa-tag ' + tagClass(tag), tag) : el('span'));
+        const ttl = el('span', 'ttl'); ttl.append(link(r.link, rest.trim() || r.title));
+        if (r.location) ttl.append(' ', el('span', 'loc', '· ' + r.location));
+        row.append(ttl);
+        list.append(row);
+      });
+      wrap.append(lbl, list);
+      box.append(wrap);
+    });
+  }
+
+  // ---- tasks
+  const dueInfo = (due) => {
+    if (!due) return ['마감 없음', ''];
+    const s = due.slice(0, 10);
+    const diff = Math.round((new Date(s + 'T00:00:00Z') - new Date(today + 'T00:00:00Z')) / 864e5);
+    if (diff < 0) return [md(s) + ' · ' + (-diff) + '일 지남', 'bad'];
+    if (diff === 0) return [md(s) + ' · 오늘', 'bad'];
+    if (diff <= 7) return [md(s) + ' · D-' + diff, 'warn'];
+    return [md(s), ''];
+  };
+  function drawTasks() {
+    const d = dash.data('tasks');
+    const tb = document.querySelector('#tasks-tbl tbody');
+    if (d.status === 'error' || d.status === 'connect' || d.status === 'declined') return failRow(tb, 3);
+    if (d.status !== 'ok') return;
+    const since = addDays(today, -14);
+    const named = d.data.filter((r) => r.name);
+    const inView = (r, s) => r.status === s && (s !== '완료✨' || (r.due && r.due.slice(0, 10) >= since));
+    const statuses = [['진행 중⏳️', '진행 중'], ['추진할 것💡', '추진할 것'], ['아이디어 💡', '아이디어'], ['완료✨', '최근 2주 완료']];
+    document.getElementById('task-status').replaceChildren(...statuses.map(([k, lbl]) => [k, lbl, named.filter((r) => inView(r, k)).length]).filter((x) => x[2]).map(([k, lbl, n]) => chip(k, lbl + ' ' + n, state.taskStatus === k)));
+    const owners = [...new Set(named.map((r) => r.owner).filter(Boolean))].sort();
+    document.getElementById('task-owner').replaceChildren(...[['', '전체 담당'], ...owners.map((o) => [o, o])].map(([v, lbl]) => chip(v, lbl, state.taskOwner === v)));
+    const rows = named.filter((r) => inView(r, state.taskStatus) && (!state.taskOwner || r.owner === state.taskOwner))
+      .sort((a, b) => (!a.due ? 1 : !b.due ? -1 : state.taskStatus === '완료✨' ? (a.due < b.due ? 1 : -1) : (a.due < b.due ? -1 : 1)));
+    tb.replaceChildren(...rows.map((r) => {
+      const tr = el('tr'); tr.dataset.key = r.url;
+      const t1 = el('td', 'wrap'); t1.append(link(r.url, r.name));
+      const t3 = el('td', 'nw'); const [txt, cls] = dueInfo(r.due);
+      t3.append(state.taskStatus === '완료✨' ? el('span', 'muted', r.due ? md(r.due) : '—') : el('span', 'pa-pill ' + cls, txt));
+      tr.append(t1, el('td', 'nw muted', r.owner || '미지정'), t3);
+      return tr;
+    }));
+    if (!rows.length) emptyRow(tb, 3, '해당하는 업무가 없습니다.');
+  }
+
+  // ---- requirements
+  const REQ_COLORS = { '미조치': 'var(--color-bad)', '검토중': 'var(--color-warn)', '조치완료': 'var(--color-ok)', '조치불필요': 'var(--cds-chart-muted)', '수용불가': 'var(--color-fg-muted)', '미분류': 'var(--color-border-line)' };
+  const REQ_ORDER = ['미조치', '검토중', '미분류', '조치완료', '조치불필요', '수용불가'];
+  const OPEN = ['미조치', '검토중', '미분류'];
+  const reqPill = (s) => s === '미조치' ? 'bad' : s === '검토중' ? 'warn' : s === '조치완료' ? 'ok' : '';
+  function drawReqs() {
+    const d = dash.data('reqs'), st = dash.data('req_stats');
+    const tb = document.querySelector('#reqs-tbl tbody');
+    if (d.status === 'error' || d.status === 'connect' || d.status === 'declined') return failRow(tb, 5);
+    if (d.status !== 'ok' || st.status !== 'ok') return;
+    const counts = new Map(st.data.map((r) => [r.status, r.n]));
+    const present = REQ_ORDER.filter((s) => counts.get(s));
+    const open = OPEN.reduce((a, s) => a + (counts.get(s) || 0), 0);
+    const opts = [['open', '처리 필요 ' + open], ...present.map((s) => [s, s + ' ' + counts.get(s)]), ['all', '전체 ' + d.data.length]];
+    document.getElementById('req-status').replaceChildren(...opts.map(([v, lbl]) => {
+      const b = chip(v, lbl, state.reqStatus === v);
+      const c = v === 'open' ? REQ_COLORS['미조치'] : REQ_COLORS[v];
+      if (c) { b.classList.add('tone'); b.style.setProperty('--c', c); if (v === '미분류') b.style.setProperty('--on', 'var(--color-fg)'); }
+      return b;
+    }));
+    const q = state.reqQ;
+    const stOf = (r) => r.status || '미분류';
+    const rows = d.data.filter((r) => (state.reqStatus === 'all' || (state.reqStatus === 'open' ? OPEN.includes(stOf(r)) : stOf(r) === state.reqStatus)) && (!q || ((r.title || '') + ' ' + (r.note || '')).toLowerCase().includes(q)))
+      .sort((a, b) => (REQ_ORDER.indexOf(stOf(a)) - REQ_ORDER.indexOf(stOf(b))) || ((b.raised || '') < (a.raised || '') ? -1 : 1));
+    document.getElementById('req-count').textContent = rows.length + '건 표시';
+    tb.replaceChildren(...rows.map((r) => {
+      const tr = el('tr'); tr.dataset.key = r.url;
+      const t1 = el('td', 'wrap'); t1.append(link(r.url, r.title || '(제목 없음)'));
+      if (r.term) t1.append(' ', el('span', 'pa-pill', r.term));
+      const t5 = el('td', 'nw'); t5.append(el('span', 'pa-pill ' + reqPill(stOf(r)), stOf(r)));
+      tr.append(t1, el('td', 'nw muted', r.kind || '—'), el('td', 'nw muted', parseArr(r.owners).join(', ') || '—'), el('td', 'nw muted', r.raised ? md(r.raised) : '—'), t5);
+      return tr;
+    }));
+    if (!rows.length) emptyRow(tb, 5, '조건에 맞는 요구사항이 없습니다.');
+  }
+
+  // ---- activities
+  const tip = el('div', 'pa-tip'); tip.hidden = true;
+  function drawActChart() {
+    const box = document.getElementById('act-chart');
+    const d = dash.data('act_weeks');
+    if (d.status === 'error') { box.classList.remove('dash-skeleton'); return fail(box); }
+    if (d.status !== 'ok') { box.replaceChildren(); box.classList.add('dash-skeleton'); return; }
+    box.classList.remove('dash-skeleton');
+    const weeks = new Map(d.data.map((r) => [r.week, r.n]));
+    if (!weeks.size) { box.replaceChildren(el('div', 'empty', '기간 내 활동기록이 없습니다.')); return; }
+    const ks = [...weeks.keys()].sort();
+    const all = []; for (let w = ks[0]; w <= ks[ks.length - 1]; w = addDays(w, 7)) all.push(w);
+    const thisWeek = addDays(today, -((new Date(today + 'T00:00:00Z').getUTCDay() + 6) % 7));
+    const W = Math.max(box.clientWidth, 260), H = 150, m = { t: 14, r: 4, b: 22, l: 26 };
+    const x = d3.scaleBand(all, [m.l, W - m.r]).padding(0.28);
+    const y = d3.scaleLinear([0, d3.max(ks, (k) => weeks.get(k)) || 1], [H - m.b, m.t]).nice();
+    const svg = d3.create('svg').attr('width', '100%').attr('viewBox', `0 0 ${W} ${H}`).attr('role', 'img').attr('aria-label', '주별 활동 건수');
+    const ticks = y.ticks(3).filter(Number.isInteger);
+    svg.append('g').selectAll('line').data(ticks).join('line').attr('x1', m.l).attr('x2', W - m.r).attr('y1', (v) => y(v)).attr('y2', (v) => y(v)).attr('stroke', 'var(--cds-chart-grid)');
+    svg.append('g').selectAll('text').data(ticks).join('text').attr('x', m.l - 6).attr('y', (v) => y(v)).attr('dy', '0.32em').attr('text-anchor', 'end').attr('fill', 'var(--color-fg-muted)').style('font-size', 'var(--cds-font-size-caption)').text((v) => v);
+    const step = Math.ceil(all.length / Math.max(1, Math.floor((W - m.l) / 46)));
+    svg.append('g').selectAll('text').data(all.filter((_, i) => (all.length - 1 - i) % step === 0)).join('text').attr('x', (w) => x(w) + x.bandwidth() / 2).attr('y', H - 6).attr('text-anchor', 'middle').attr('fill', 'var(--color-fg-muted)').style('font-size', 'var(--cds-font-size-caption)').text((w) => md(w));
+    const bw = Math.min(32, x.bandwidth());
+    svg.append('g').selectAll('rect').data(ks).join('rect')
+      .attr('x', (w) => x(w) + (x.bandwidth() - bw) / 2).attr('width', bw)
+      .attr('y', (w) => y(weeks.get(w))).attr('height', (w) => y(0) - y(weeks.get(w))).attr('rx', 4)
+      .attr('fill', (w) => (w > thisWeek ? 'var(--cds-chart-muted)' : w === thisWeek ? dash.colors[1] : dash.colors[0]))
+      .on('mousemove', (ev, w) => {
+        tip.hidden = false;
+        tip.replaceChildren(el('div', 'd', md(w) + ' 주' + (w === thisWeek ? ' (이번 주)' : w > thisWeek ? ' (예정)' : '')), el('div', null, weeks.get(w) + '건'));
+        const bx = box.getBoundingClientRect();
+        tip.style.left = Math.min(Math.max(0, ev.clientX - bx.left + 10), bx.width - tip.offsetWidth) + 'px';
+        tip.style.top = Math.max(0, ev.clientY - bx.top - 40) + 'px';
+      })
+      .on('mouseleave', () => { tip.hidden = true; });
+    box.replaceChildren(svg.node(), tip);
+  }
+  const REACT = { '우호': 'ok', '부정': 'bad', '유보': 'warn' };
+  function drawActs() {
+    pressGroup(document.getElementById('act-mode'), 'mode', state.act);
+    const box = document.getElementById('act-list');
+    const d = dash.data('activities');
+    if (d.status === 'error' || d.status === 'connect' || d.status === 'declined') { box.classList.remove('dash-skeleton'); return fail(box); }
+    if (d.status !== 'ok') { box.replaceChildren(); box.classList.add('dash-skeleton'); return; }
+    box.classList.remove('dash-skeleton');
+    const all = d.data.filter((r) => r.start).map((r) => ({ r, k: kst(r) })).sort((a, b) => (a.k < b.k ? 1 : -1));
+    const day = (x) => x.k.slice(0, 10);
+    const from = addDays(today, -30);
+    const q = state.actQ, searching = !!(q || state.actFrom || state.actTo);
+    document.getElementById('act-mode').hidden = searching;
+    document.getElementById('act-clear').hidden = !searching;
+    const note = document.getElementById('act-note');
+    let rows;
+    if (searching) {
+      const lo = state.actFrom && state.actTo && state.actFrom > state.actTo ? state.actTo : state.actFrom;
+      const hi = state.actFrom && state.actTo && state.actFrom > state.actTo ? state.actFrom : state.actTo;
+      rows = all.filter((x) => (!lo || day(x) >= lo) && (!hi || day(x) <= hi)
+        && (!q || [x.r.title, x.r.summary, parseArr(x.r.regions).join(' '), parseArr(x.r.actors).join(' ')].join(' ').toLowerCase().includes(q)));
+      const span = (lo ? md(lo) + (lo.slice(0, 4) !== today.slice(0, 4) ? '(' + lo.slice(0, 4) + ')' : '') : '처음') + ' ~ ' + (hi ? md(hi) : '끝');
+      note.textContent = '전체 ' + all.length + '건 중 ' + rows.length + '건 찾음 · 기간 ' + span + (rows.length > 100 ? ' · 앞의 100건만 표시' : '') + (d.data.cut ? ' · 가장 오래된 기록 일부는 불러오지 못했습니다' : '');
+    } else {
+      note.textContent = '최근 한 달 활동만 보여줍니다. 검색어나 기간을 넣으면 전체 활동기록에서 찾습니다.';
+      if (state.act === 'next') rows = all.filter((x) => day(x) > today).reverse();
+      else if (state.act === 'todo') rows = all.filter((x) => day(x) <= today && day(x) >= from && !x.r.summary && !x.r.reaction);
+      else rows = all.filter((x) => day(x) <= today && day(x) >= from);
+    }
+    box.replaceChildren();
+    if (!rows.length) { box.append(el('div', 'empty', searching ? '조건에 맞는 활동이 없습니다.' : state.act === 'todo' ? '최근 한 달 지난 활동에는 모두 기록이 있습니다.' : '해당하는 활동이 없습니다.')); return; }
+    const hl = (parent, text) => {
+      if (!q) { parent.append(text); return; }
+      const low = text.toLowerCase(); let i = 0, j;
+      while ((j = low.indexOf(q, i)) !== -1) { parent.append(text.slice(i, j), el('mark', null, text.slice(j, j + q.length))); i = j + q.length; }
+      parent.append(text.slice(i));
+    };
+    rows.slice(0, searching ? 100 : 60).forEach(({ r, k }) => {
+      const item = el('div', 'pa-act' + (!r.summary && !r.reaction ? ' empty-detail' : ''));
+      const top = el('div', 'pa-act-top');
+      top.append(el('span', 'when', (searching && k.slice(0, 4) !== today.slice(0, 4) ? k.slice(2, 4) + '.' : '') + md(k.slice(0, 10)) + ' ' + wd(k.slice(0, 10)) + (k.length > 10 ? ' ' + k.slice(11, 16) : '')));
+      const t = el('span', 'ttl'); const a = link(r.url, ''); hl(a, r.title || '(제목 없음)'); t.append(a); top.append(t);
+      parseArr(r.regions).forEach((g) => top.append(el('span', 'pa-tag', g)));
+      const actors = parseArr(r.actors); if (actors.length) top.append(el('span', 'muted', actors.join('')));
+      item.append(top);
+      if (r.summary) {
+        let s = r.summary.replace(/^\[자동요약\]\s*/, '');
+        const at = q ? s.toLowerCase().indexOf(q) : -1;
+        if (s.length > 180) s = at > 120 ? '…' + s.slice(at - 60, at + 120) + '…' : s.slice(0, 180) + '…';
+        const pEl = el('p'); hl(pEl, s); item.append(pEl);
+      }
+      box.append(item);
+    });
+  }
+
+  // ---- orgs
+  function drawOrgs() {
+    const d = dash.data('orgs'), c = dash.data('org_counts');
+    const tb = document.querySelector('#orgs-tbl tbody');
+    const det = document.getElementById('org-detail'), wrap = document.getElementById('org-results'), hint = document.getElementById('org-hint'), count = document.getElementById('org-count');
+    const q = state.orgQ;
+    if (d.status === 'error' || d.status === 'connect' || d.status === 'declined') { det.hidden = true; hint.hidden = true; wrap.hidden = false; count.textContent = ''; return failRow(tb, 6); }
+    wrap.hidden = !q; hint.hidden = !!q;
+    if (!q) { tb.replaceChildren(); det.hidden = true; state.orgSel = null; count.textContent = d.status === 'ok' ? d.data.filter((r) => r.name).length + '개 단체 등록' : ''; return; }
+    if (d.status !== 'ok') return;
+    const cnt = new Map(c.status === 'ok' ? c.data.map((x) => [x.url, x]) : []);
+    const rows0 = d.data.filter((r) => r.name).map((r) => ({ ...r, _reg: parseArr(r.regions) }));
+    const acts = (r) => (cnt.get(r.url) || { acts: 0 }).acts;
+    const rows = rows0.filter((r) => [r.name, r.alias, r.people, r.note].join(' ').toLowerCase().includes(q))
+      .sort((a, b) => acts(b) - acts(a) || (a.name < b.name ? -1 : 1));
+    count.textContent = rows0.length + '개 중 ' + rows.length + '개 찾음';
+    tb.replaceChildren(...rows.slice(0, 300).map((r) => {
+      const n = cnt.get(r.url);
+      const tr = el('tr'); tr.dataset.key = r.url; tr.tabIndex = 0; if (state.orgSel === r.url) tr.className = 'sel';
+      tr.append(el('td', 'wrap', r.name), el('td', 'nw muted', r.kind || '—'), el('td', 'nw muted', r._reg.join(', ') || '—'), el('td', 'wrap muted', r.people || '—'), el('td', 'num', n ? String(n.acts) : '—'), el('td', 'num', n ? String(n.reqs) : '—'));
+      return tr;
+    }));
+    if (!rows.length) emptyRow(tb, 6, '검색 결과가 없습니다. 별칭이나 인물 이름으로도 찾아보세요.');
+    const sel = state.orgSel && rows0.find((r) => r.url === state.orgSel);
+    det.hidden = !sel;
+    if (sel) {
+      const n = cnt.get(sel.url);
+      const h = el('h3'); h.append(link(sel.url, sel.name + ' ↗'));
+      const dl = el('dl');
+      [['유형', sel.kind], ['지역', sel._reg.join(', ')], ['대상범위', sel.scope], ['주요 인물', sel.people], ['별칭·이표기', sel.alias], ['연결', n ? '활동기록 ' + n.acts + '건 · 요구사항 ' + n.reqs + '건' : ''], ['검수상태', sel.review], ['비고', sel.note]]
+        .forEach(([k, v]) => { if (v) dl.append(el('dt', null, k), el('dd', null, v)); });
+      det.replaceChildren(h, dl);
+    }
+  }
+
+  function drawSnap() {
+    const s = dash.data('snapshot'), n = document.getElementById('snap-label');
+    if (s.status === 'ok' && s.data[0]) { const at = String(s.data[0].at); n.textContent = '데이터 기준 ' + at.slice(5, 7).replace(/^0/, '') + '/' + at.slice(8, 10).replace(/^0/, '') + ' ' + at.slice(11, 16); }
+    else n.textContent = s.status === 'loading' ? '' : '데이터 기준 시각 없음';
+  }
+  dash.onData(() => {
+    drawSnap(); drawKpis(); drawTakeaway(); drawCalendar(); drawTasks(); drawReqs(); drawActChart(); drawActs(); drawOrgs();
+  });
+})();
+</script>
+
+<script>
+// 모바일(폭 640px 이하)에서 섹션마다 접기/펼치기 스위치 (처음엔 접힘, 핵심 지표·단체 마스터 검색은 제외)
+(function () {
+  const mk = (sec, label) => {
+    const b = document.createElement('button');
+    b.type = 'button'; b.className = 'pa-fold';
+    b.setAttribute('role', 'switch'); b.setAttribute('aria-checked', 'false'); b.setAttribute('aria-label', label + ' 펼치기');
+    const t = document.createElement('span'); t.textContent = '접힘';
+    sec.classList.add('pa-collapsed');
+    const k = document.createElement('span'); k.className = 'trk';
+    b.append(t, k);
+    b.addEventListener('click', () => {
+      const open = !sec.classList.toggle('pa-collapsed');
+      b.setAttribute('aria-checked', String(open));
+      t.textContent = open ? '펼침' : '접힘';
+    });
+    return b;
+  };
+  document.querySelectorAll('.pa-card').forEach((sec) => {
+    if (sec.id === 'orgs') return;
+    const head = sec.querySelector(':scope > .pa-card-head');
+    if (!head) return;
+    const h = head.querySelector('h2');
+    const sw = mk(sec, h ? h.textContent : '섹션');
+    head.append(sw);
+    // 접힌 상태에서도 보여 줄 부분(요구사항: 그래프·상태 버튼·검색 / 활동기록: 그래프·검색)
+    const keep = { requests: ['#req-status', ':scope > .pa-tools'], activities: ['#act-chart', '#act-search'] }[sec.id] || [];
+    keep.forEach((q) => { const n = sec.querySelector(q); if (n) n.classList.add('pa-keep'); });
+    // 접힌 채로 검색하거나 상태 버튼을 누르면 결과가 보이도록 자동으로 펼친다
+    const open = () => { if (sec.classList.contains('pa-collapsed')) sw.click(); };
+    sec.querySelectorAll('.pa-keep').forEach((n) => {
+      n.addEventListener('input', open);
+      n.addEventListener('change', open);
+      n.addEventListener('click', (e) => { if (e.target.closest('button')) open(); });
+    });
+  });
+})();
+</script>

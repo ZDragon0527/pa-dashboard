@@ -1,0 +1,41 @@
+// 공개용 현황판 HTML 만들기 — GitHub Pages 에 올릴 완성된 문서를 만든다
+// 사용법: node scripts/build-public.js <작업 폴더> <출력 폴더>
+// 환경변수 TRIGGER_URL(선택): 새로고침 버튼이 갱신을 요청할 주소(Cloudflare Worker). 비우면 버튼은 최신 게시본만 다시 불러온다.
+const fs = require('fs');
+const path = require('path');
+
+const work = process.argv[2] || 'work';
+const dist = process.argv[3] || 'dist';
+const out = path.join(work, 'out');
+fs.mkdirSync(dist, { recursive: true });
+const read = (n) => JSON.parse(fs.readFileSync(path.join(out, n + '.json'), 'utf8'));
+const part = (n) => fs.readFileSync(path.join(__dirname, '..', 'templates', n), 'utf8').replace(/^﻿/, '');
+
+// 공개하지 않는 항목은 여기서 한 번 더 지운다
+const data = {
+  calendar: read('calendar'),
+  tasks: read('tasks'),
+  activities: read('activities').map((r) => ({ ...r, reaction: null })),
+  reqs: read('reqs').map((r) => ({ ...r, note: null })),
+  orgs: read('orgs').map((o) => ({ ...o, lean: null, note: null })),
+  snapshot: read('snapshot'),
+};
+
+const head = part('public-head.html');
+const ti = head.indexOf('</title>') + '</title>'.length;
+const body = part('public-body.html');
+const si = body.indexOf('<script>');
+if (si < 0) throw new Error('public-body.html 에 <script> 가 없습니다');
+const json = JSON.stringify(data).replace(/</g, '\\u003c');
+const trigger = '<script>window.PA_TRIGGER = ' + JSON.stringify(process.env.TRIGGER_URL || '').replace(/</g, '\\u003c') + ';</script>\n';
+
+const html = '<!doctype html>\n<html lang="ko">\n<head>\n<meta charset="utf-8">\n'
+  + '<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">\n'
+  + '<meta name="robots" content="noindex,nofollow">\n'
+  + head.slice(0, ti) + '\n</head>\n<body>\n'
+  + head.slice(ti) + body.slice(0, si) + '\n</div>\n'
+  + trigger + part('public-shim.html').replace('__PA_DATA__', () => json) + body.slice(si)
+  + '\n</body>\n</html>\n';
+fs.writeFileSync(path.join(dist, 'index.html'), html);
+fs.writeFileSync(path.join(dist, '.nojekyll'), '');
+console.log('dist/index.html: ' + Math.round(html.length / 1024) + 'KB');
