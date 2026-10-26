@@ -231,7 +231,7 @@
     </div>
     <div class="pa-detail" id="org-detail" hidden></div>
   </section>
-  <section class="pa-card pa-install" id="install" aria-labelledby="install-title">
+  <section class="pa-card pa-install pa-collapsed" id="install" aria-labelledby="install-title">
     <div class="pa-card-head"><h2 id="install-title">휴대폰에 앱처럼 설치하기</h2></div>
     <div class="pa-install-box">
       <p class="pa-install-os">안드로이드 · 삼성 인터넷</p>
@@ -669,7 +669,7 @@ dash.calc('org_counts', {
     return b;
   };
   document.querySelectorAll('.pa-card').forEach((sec) => {
-    if (sec.id === 'orgs' || sec.id === 'install') return;
+    if (sec.id === 'orgs') return;
     const head = sec.querySelector(':scope > .pa-card-head');
     if (!head) return;
     const h = head.querySelector('h2');
