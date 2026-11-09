@@ -155,6 +155,28 @@
   .pa-grid > .pa-card > .pa-tbl-wrap { flex: 1 1 0; min-height: 26rem; max-height: none; }
   .pa-grid > .pa-card > .pa-acts { flex: 1 1 0; min-height: 22rem; max-height: none; }
 }
+
+/* 카드 확대 보기 */
+.pa-grid > .pa-card:not(.pa-max), #orgs:not(.pa-max) { cursor: zoom-in; }
+.pa-card :is(a, button, input, select, label, tbody tr, .pa-act, .pa-ev, .pa-day, .pa-chart) { cursor: auto; }
+.pa-card :is(a, button, label, .pa-chip) { cursor: pointer; }
+.pa-max-open { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; font: inherit; font-size: var(--cds-font-size-caption); border: 1px solid var(--color-border-line); border-radius: 999px; background: var(--color-panel); color: var(--color-fg); padding: 4px 10px; }
+.pa-max-open:focus-visible { position: static; width: auto; height: auto; clip: auto; overflow: visible; outline: 2px solid var(--color-fg); outline-offset: 2px; }
+.pa-max-close { display: none; margin-left: auto; align-items: center; gap: 6px; font: inherit; font-size: var(--cds-font-size-body); font-weight: 600; padding: 8px 14px; min-height: 40px; border-radius: 999px; border: 1px solid var(--color-border-line); background: var(--color-panel); color: var(--color-fg); cursor: pointer; }
+.pa-max-close svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; }
+.pa-max-close:hover { border-color: var(--color-fg-muted); }
+.pa-max-close:focus-visible { outline: 2px solid var(--color-fg); outline-offset: 2px; }
+.pa-card.pa-max { position: fixed; inset: 0; z-index: 1000; margin: 0; border-radius: 0; border: 0; display: flex; flex-direction: column; overflow: auto; overscroll-behavior: contain;
+  padding: max(16px, env(safe-area-inset-top, 0px)) max(16px, env(safe-area-inset-right, 0px)) max(16px, env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px)); }
+.pa-card.pa-max > .pa-card-head { position: sticky; top: calc(-1 * max(16px, env(safe-area-inset-top, 0px))); z-index: 2; background: var(--color-panel); padding-block: 4px; }
+.pa-card.pa-max .pa-max-close { display: inline-flex; }
+.pa-card.pa-max .pa-fold, .pa-card.pa-max .pa-max-open { display: none !important; }
+.pa-card.pa-max > :is(.pa-agenda, .pa-tbl-wrap, .pa-acts) { flex: 1 1 0; min-height: 12rem; max-height: none; }
+html.pa-max-lock, html.pa-max-lock body { overflow: hidden; }
+@media (prefers-reduced-motion: no-preference) {
+  .pa-card.pa-max { animation: pa-max-in .18s cubic-bezier(.2,.8,.2,1); }
+  @keyframes pa-max-in { from { opacity: .4; transform: scale(.985); } to { opacity: 1; transform: none; } }
+}
 </style>
 
 <div class="pa">
@@ -712,6 +734,7 @@ dash.calc('org_counts', {
     if (s.status === 'ok' && s.data[0]) { const at = String(s.data[0].at); n.textContent = '데이터 기준 ' + at.slice(5, 7).replace(/^0/, '') + '/' + at.slice(8, 10).replace(/^0/, '') + ' ' + at.slice(11, 16); }
     else n.textContent = s.status === 'loading' ? '' : '데이터 기준 시각 없음';
   }
+  window.paRedraw = () => { drawActChart(); drawOrgs(); };
   dash.onData(() => {
     drawSnap(); drawKpis(); drawTakeaway(); drawCalendar(); drawTasks(); drawReqs(); drawActChart(); drawActs(); drawOrgs();
   });
@@ -774,5 +797,80 @@ dash.calc('org_counts', {
     deferred = null; btn.hidden = true;
     if (r && r.outcome === 'accepted') hide();
   });
+})();
+</script>
+
+<script>
+// 카드 확대 보기: 카드의 빈 곳(버튼·링크·입력칸·목록 항목·표의 행·차트가 아닌 곳)을 누르면 화면 가득 띄운다.
+// 닫기: 닫기 버튼, Esc, 휴대폰 뒤로가기. 키보드는 카드 제목줄의 숨은 '확대' 버튼(Tab으로 나타남)을 쓴다.
+(function () {
+  const IDS = ['schedule', 'tasks-card', 'requests', 'activities', 'orgs'];
+  const SKIP = 'a, button, input, select, textarea, label, [role="switch"], [role="button"], tbody tr, .pa-act, .pa-ev, .pa-day, .pa-chart, .pa-org-detail, dl';
+  let cur = null, opener = null, wasCollapsed = false, pushed = false;
+  const svgX = '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3.5 3.5l9 9M12.5 3.5l-9 9"/></svg>';
+  const redraw = () => { try { window.paRedraw && window.paRedraw(); } catch (e) { /* 다시 그리기 실패는 무시 */ } };
+  const focusables = (root) => [...root.querySelectorAll('a[href], button, input, select, textarea, [tabindex]:not([tabindex="-1"])')].filter((e) => !e.disabled && e.offsetParent !== null);
+
+  function open(sec, from) {
+    if (cur) return;
+    cur = sec; opener = from || null;
+    const fold = sec.querySelector('.pa-fold');
+    wasCollapsed = sec.classList.contains('pa-collapsed');
+    if (wasCollapsed && fold) fold.click();
+    const h = sec.querySelector('h2');
+    if (h && !h.id) h.id = sec.id + '-title';
+    sec.classList.add('pa-max');
+    sec.setAttribute('role', 'dialog'); sec.setAttribute('aria-modal', 'true');
+    if (h) sec.setAttribute('aria-labelledby', h.id);
+    document.documentElement.classList.add('pa-max-lock');
+    try { history.pushState({ paMax: sec.id }, ''); pushed = true; } catch (e) { pushed = false; }
+    redraw();
+    const c = sec.querySelector('.pa-max-close'); if (c) c.focus({ preventScroll: true });
+    sec.scrollTop = 0;
+  }
+  function close(fromPop) {
+    if (!cur) return;
+    const sec = cur; cur = null;
+    sec.classList.remove('pa-max');
+    sec.removeAttribute('role'); sec.removeAttribute('aria-modal'); sec.removeAttribute('aria-labelledby');
+    document.documentElement.classList.remove('pa-max-lock');
+    if (wasCollapsed) { const fold = sec.querySelector('.pa-fold'); if (fold && !sec.classList.contains('pa-collapsed')) fold.click(); }
+    redraw();
+    const back = (opener && document.contains(opener)) ? opener : sec.querySelector('.pa-max-open');
+    if (back) back.focus({ preventScroll: true });
+    if (pushed && !fromPop) { pushed = false; try { history.back(); } catch (e) { /* 무시 */ } }
+    pushed = false;
+  }
+
+  IDS.forEach((id) => {
+    const sec = document.getElementById(id);
+    const head = sec && sec.querySelector(':scope > .pa-card-head');
+    if (!head) return;
+    const name = (head.querySelector('h2') || {}).textContent || '카드';
+    const ob = document.createElement('button'); ob.type = 'button'; ob.className = 'pa-max-open'; ob.textContent = name + ' 확대';
+    ob.addEventListener('click', () => open(sec, ob));
+    const cb = document.createElement('button'); cb.type = 'button'; cb.className = 'pa-max-close';
+    cb.innerHTML = svgX; cb.append('닫기'); cb.setAttribute('aria-label', name + ' 확대 닫기');
+    cb.addEventListener('click', () => close(false));
+    head.append(ob, cb);
+    sec.addEventListener('click', (e) => {
+      if (cur || e.defaultPrevented || e.button !== 0) return;
+      if (e.target.closest(SKIP)) return;
+      const s = window.getSelection && window.getSelection(); if (s && String(s).trim()) return; // 글자를 고르던 중이면 열지 않는다
+      open(sec, null);
+    });
+  });
+
+  document.addEventListener('keydown', (e) => {
+    if (!cur) return;
+    if (e.key === 'Escape') { e.preventDefault(); close(false); return; }
+    if (e.key === 'Tab') { // 확대된 카드 안에서만 초점이 돈다
+      const f = focusables(cur); if (!f.length) return;
+      const first = f[0], last = f[f.length - 1];
+      if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+      else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+    }
+  });
+  window.addEventListener('popstate', () => { if (cur && pushed) { pushed = false; close(true); } });
 })();
 </script>
