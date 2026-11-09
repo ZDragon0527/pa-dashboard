@@ -66,6 +66,20 @@
 .pa td.num, .pa th.num { text-align: right; }
 .pa tr[data-key] { cursor: default; }
 .pa .orgs tr[data-key] { cursor: pointer; }
+.pa-org-toggle { font: inherit; color: var(--color-fg); background: none; border: 0; padding: 4px 0; margin: -4px 0; min-height: 24px; text-align: left; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; border-radius: 4px; }
+.pa-org-toggle .nm { overflow-wrap: anywhere; }
+.pa-org-toggle .chev { width: 14px; height: 14px; flex: none; fill: none; stroke: var(--color-fg-muted); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; transition: transform .2s; }
+.pa-org-toggle[aria-expanded="true"] { font-weight: 600; }
+.pa-org-toggle[aria-expanded="true"] .chev { transform: rotate(180deg); stroke: var(--color-fg); }
+.pa-org-toggle:focus-visible { outline: 2px solid var(--color-fg); outline-offset: 2px; }
+.pa .orgs tr.pa-org-detail-row td { padding: 0 8px 12px; background: color-mix(in srgb, var(--color-fg) 5%, transparent); }
+.pa-org-detail { position: sticky; left: 8px; box-sizing: border-box; display: grid; gap: var(--cds-gap-xs); font-size: var(--cds-font-size-body); padding-top: 4px; }
+.pa-org-detail h3 { margin: 0; font-size: var(--cds-font-size-caption); font-weight: 600; }
+.pa-org-detail h3 a { color: var(--color-fg); text-decoration: underline; text-underline-offset: 3px; }
+.pa-org-detail dl { display: grid; grid-template-columns: 6rem 1fr; gap: 4px var(--cds-gap-sm); margin: 0; }
+.pa-org-detail dt { color: var(--color-fg-muted); font-size: var(--cds-font-size-caption); padding-top: 2px; }
+.pa-org-detail dd { margin: 0; overflow-wrap: anywhere; }
+@media (prefers-reduced-motion: reduce) { .pa-org-toggle .chev { transition: none; } }
 .pa .orgs tr[data-key]:hover td, .pa .orgs tr.sel td { background: color-mix(in srgb, var(--color-fg) 5%, transparent); }
 .pa .muted { color: var(--color-fg-muted); }
 
@@ -367,9 +381,18 @@ dash.calc('org_counts', {
   document.getElementById('req-q').addEventListener('input', (e) => { state.reqQ = e.target.value.trim().toLowerCase(); drawReqs(); });
   document.getElementById('org-q').addEventListener('input', (e) => { state.orgQ = e.target.value.trim().toLowerCase(); drawOrgs(); });
   const orgTbl = document.getElementById('orgs-tbl');
-  const pickOrg = (tr) => { if (!tr) return; state.orgSel = state.orgSel === tr.dataset.key ? null : tr.dataset.key; drawOrgs(); };
-  orgTbl.addEventListener('click', (e) => { if (e.target.closest('a')) return; pickOrg(e.target.closest('tr[data-key]')); });
-  orgTbl.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); pickOrg(e.target.closest('tr[data-key]')); } });
+  // 펼침 버튼(또는 행)을 누르면 그 행 바로 아래에 상세를 펼친다. 다시 그린 뒤에도 같은 버튼에 초점을 돌려준다.
+  const pickOrg = (tr) => {
+    if (!tr) return;
+    const key = tr.dataset.key;
+    state.orgSel = state.orgSel === key ? null : key;
+    drawOrgs();
+    const btn = [...orgTbl.querySelectorAll('.pa-org-toggle')].find((b) => b.closest('tr').dataset.key === key);
+    if (btn) btn.focus({ preventScroll: true });
+    const open = orgTbl.querySelector('tr.pa-org-detail-row');
+    if (open) open.scrollIntoView({ block: 'nearest' });
+  };
+  orgTbl.addEventListener('click', (e) => { if (e.target.closest('a') || e.target.closest('.pa-org-detail-row')) return; pickOrg(e.target.closest('tr[data-key]')); });
 
   // ---- KPIs
   function drawKpis() {
@@ -630,23 +653,37 @@ dash.calc('org_counts', {
     const rows = rows0.filter((r) => [r.name, r.alias, r.people, r.note].join(' ').toLowerCase().includes(q))
       .sort((a, b) => acts(b) - acts(a) || (a.name < b.name ? -1 : 1));
     count.textContent = rows0.length + '개 중 ' + rows.length + '개 찾음';
-    tb.replaceChildren(...rows.slice(0, 300).map((r) => {
+    det.hidden = true; // 상세는 표 안, 누른 행 바로 아래에 펼친다
+    const out = [];
+    rows.slice(0, 300).forEach((r, i) => {
       const n = cnt.get(r.url);
-      const tr = el('tr'); tr.dataset.key = r.url; tr.tabIndex = 0; if (state.orgSel === r.url) tr.className = 'sel';
-      tr.append(el('td', 'wrap', r.name), el('td', 'nw muted', r.kind || '—'), el('td', 'nw muted', r._reg.join(', ') || '—'), el('td', 'wrap muted', r.people || '—'), el('td', 'num', n ? String(n.acts) : '—'), el('td', 'num', n ? String(n.reqs) : '—'));
-      return tr;
-    }));
+      const open = state.orgSel === r.url;
+      const tr = el('tr'); tr.dataset.key = r.url; if (open) tr.className = 'sel';
+      const t1 = el('td', 'wrap');
+      const btn = el('button', 'pa-org-toggle'); btn.type = 'button';
+      btn.setAttribute('aria-expanded', String(open)); btn.setAttribute('aria-controls', 'org-row-detail-' + i);
+      btn.append(el('span', 'nm', r.name));
+      const chev = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+      chev.setAttribute('viewBox', '0 0 16 16'); chev.setAttribute('aria-hidden', 'true'); chev.setAttribute('class', 'chev');
+      const p = document.createElementNS('http://www.w3.org/2000/svg', 'path'); p.setAttribute('d', 'M4 6l4 4 4-4'); chev.append(p);
+      btn.append(chev);
+      t1.append(btn);
+      tr.append(t1, el('td', 'nw muted', r.kind || '—'), el('td', 'nw muted', r._reg.join(', ') || '—'), el('td', 'wrap muted', r.people || '—'), el('td', 'num', n ? String(n.acts) : '—'), el('td', 'num', n ? String(n.reqs) : '—'));
+      out.push(tr);
+      if (open) {
+        const dr = el('tr', 'pa-org-detail-row'); const td = el('td'); td.colSpan = 6; td.id = 'org-row-detail-' + i;
+        const box = el('div', 'pa-org-detail');
+        // 표가 화면보다 넓어도 상세는 보이는 폭 안에 머물도록 폭을 맞춘다(옆으로 밀어도 제자리)
+        box.style.width = Math.max(200, document.getElementById('org-results').clientWidth - 16) + 'px';
+        const h = el('h3'); h.append(link(r.url, '노션에서 열기 ↗'));
+        const dl = el('dl');
+        [['유형', r.kind], ['지역', r._reg.join(', ')], ['대상범위', r.scope], ['주요 인물', r.people], ['별칭·이표기', r.alias], ['연결', n ? '활동기록 ' + n.acts + '건 · 요구사항 ' + n.reqs + '건' : ''], ['검수상태', r.review], ['비고', r.note]]
+          .forEach(([k, v]) => { if (v) dl.append(el('dt', null, k), el('dd', null, v)); });
+        box.append(dl, h); td.append(box); dr.append(td); out.push(dr);
+      }
+    });
+    tb.replaceChildren(...out);
     if (!rows.length) emptyRow(tb, 6, '검색 결과가 없습니다. 별칭이나 인물 이름으로도 찾아보세요.');
-    const sel = state.orgSel && rows0.find((r) => r.url === state.orgSel);
-    det.hidden = !sel;
-    if (sel) {
-      const n = cnt.get(sel.url);
-      const h = el('h3'); h.append(link(sel.url, sel.name + ' ↗'));
-      const dl = el('dl');
-      [['유형', sel.kind], ['지역', sel._reg.join(', ')], ['대상범위', sel.scope], ['주요 인물', sel.people], ['별칭·이표기', sel.alias], ['연결', n ? '활동기록 ' + n.acts + '건 · 요구사항 ' + n.reqs + '건' : ''], ['검수상태', sel.review], ['비고', sel.note]]
-        .forEach(([k, v]) => { if (v) dl.append(el('dt', null, k), el('dd', null, v)); });
-      det.replaceChildren(h, dl);
-    }
   }
 
   function drawSnap() {
