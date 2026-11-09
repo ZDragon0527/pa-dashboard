@@ -131,7 +131,17 @@
   .pa-card.pa-collapsed > .pa-keep ~ .pa-keep { margin-top: var(--cds-gap-sm); }
   #req-status .pa-chip[data-v="all"] { display: none; }
 }
-@media (prefers-reduced-motion: reduce) { .pa-fold .trk, .pa-fold .trk::after { transition: none; } }</style>
+@media (prefers-reduced-motion: reduce) { .pa-fold .trk, .pa-fold .trk::after { transition: none; } }
+/* 카드 높이에 맞춰 목록 창 채우기: 두 카드가 나란히 보이는 넓은 화면에서만.
+   같은 줄 카드는 더 큰 쪽 높이로 늘어나므로, 목록 창이 남은 높이를 채우고(넘치면 창 안에서 스크롤)
+   목록 길이가 카드를 더 늘리지 않게 한다. 최소 높이는 기존 최대 높이와 같게 둔다. */
+@media (min-width: 960px) {
+  .pa-grid > .pa-card { display: flex; flex-direction: column; }
+  .pa-grid > .pa-card > .pa-agenda { flex: 1 1 0; min-height: 30rem; max-height: none; }
+  .pa-grid > .pa-card > .pa-tbl-wrap { flex: 1 1 0; min-height: 26rem; max-height: none; }
+  .pa-grid > .pa-card > .pa-acts { flex: 1 1 0; min-height: 22rem; max-height: none; }
+}
+</style>
 
 <div class="pa">
   <header class="pa-head" id="top">
