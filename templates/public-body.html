@@ -162,7 +162,7 @@
 .pa-card :is(a, button, label, .pa-chip) { cursor: pointer; }
 .pa-max-open { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; font: inherit; font-size: var(--cds-font-size-caption); border: 1px solid var(--color-border-line); border-radius: 999px; background: var(--color-panel); color: var(--color-fg); padding: 4px 10px; }
 .pa-max-open:focus-visible { position: static; width: auto; height: auto; clip: auto; overflow: visible; outline: 2px solid var(--color-fg); outline-offset: 2px; }
-.pa-max-close { display: none; margin-left: auto; align-items: center; gap: 6px; font: inherit; font-size: var(--cds-font-size-body); font-weight: 600; padding: 8px 14px; min-height: 40px; border-radius: 999px; border: 1px solid var(--color-border-line); background: var(--color-panel); color: var(--color-fg); cursor: pointer; }
+.pa-max-close { display: none; /* pa-max-close-fixed */ position: fixed; z-index: 1002; top: max(10px, env(safe-area-inset-top, 0px)); right: max(10px, env(safe-area-inset-right, 0px)); width: 36px; height: 36px; padding: 0; align-items: center; justify-content: center; border-radius: 50%; border: 1px solid var(--color-border-line); background: var(--color-panel); color: var(--color-fg); cursor: pointer; box-shadow: 0 1px 4px rgba(0,0,0,.18); }
 .pa-max-close svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; }
 .pa-max-close:hover { border-color: var(--color-fg-muted); }
 .pa-max-close:focus-visible { outline: 2px solid var(--color-fg); outline-offset: 2px; }
@@ -170,6 +170,8 @@
   padding: max(16px, env(safe-area-inset-top, 0px)) max(16px, env(safe-area-inset-right, 0px)) max(16px, env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px)); }
 .pa-card.pa-max > .pa-card-head { position: sticky; top: calc(-1 * max(16px, env(safe-area-inset-top, 0px))); z-index: 2; background: var(--color-panel); padding-block: 4px; }
 .pa-card.pa-max .pa-max-close { display: inline-flex; }
+.pa-card.pa-max > .pa-card-head { padding-right: 48px; }
+.pa-card[tabindex="-1"]:focus { outline: none; }
 .pa-card.pa-max .pa-fold, .pa-card.pa-max .pa-max-open { display: none !important; }
 .pa-card.pa-max > :is(.pa-agenda, .pa-tbl-wrap, .pa-acts) { flex: 1 1 0; min-height: 12rem; max-height: none; }
 html.pa-max-lock, html.pa-max-lock body { overflow: hidden; }
@@ -836,8 +838,8 @@ dash.calc('org_counts', {
     document.documentElement.classList.remove('pa-max-lock');
     if (wasCollapsed) { const fold = sec.querySelector('.pa-fold'); if (fold && !sec.classList.contains('pa-collapsed')) fold.click(); }
     redraw();
-    const back = (opener && document.contains(opener)) ? opener : sec.querySelector('.pa-max-open');
-    if (back) back.focus({ preventScroll: true });
+    if (opener && document.contains(opener)) opener.focus({ preventScroll: true });
+    else { sec.setAttribute('tabindex', '-1'); sec.focus({ preventScroll: true }); }
     if (pushed && !fromPop) { pushed = false; try { history.back(); } catch (e) { /* 무시 */ } }
     pushed = false;
   }
@@ -850,7 +852,7 @@ dash.calc('org_counts', {
     const ob = document.createElement('button'); ob.type = 'button'; ob.className = 'pa-max-open'; ob.textContent = name + ' 확대';
     ob.addEventListener('click', () => open(sec, ob));
     const cb = document.createElement('button'); cb.type = 'button'; cb.className = 'pa-max-close';
-    cb.innerHTML = svgX; cb.append('닫기'); cb.setAttribute('aria-label', name + ' 확대 닫기');
+    cb.innerHTML = svgX; cb.setAttribute('aria-label', name + ' 확대 닫기'); cb.title = '닫기';
     cb.addEventListener('click', () => close(false));
     head.append(ob, cb);
     sec.addEventListener('click', (e) => {
