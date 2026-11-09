@@ -583,6 +583,26 @@ dash.calc('org_counts', {
     box.replaceChildren(svg.node(), tip);
   }
   const REACT = { '우호': 'ok', '부정': 'bad', '유보': 'warn' };
+
+  // 검색어가 단체명·별칭과 맞는 단체(2글자 이상, 5곳 이하)를 찾아, 그 단체에 연결된 활동과
+  // 제목·요약에 그 단체의 다른 이름이 들어간 활동까지 결과에 넣는다.
+  const pageId = (s) => { const ids = String(s || '').replace(/-/g, '').match(/[0-9a-f]{32}/gi); return ids ? ids[ids.length - 1].toLowerCase() : ''; };
+  function orgExpand(q) {
+    if (!q || q.length < 2) return null;
+    const o = dash.data('orgs');
+    if (o.status !== 'ok') return null;
+    const namesOf = (r) => [r.name, ...String(r.alias || '').split(/[,，、·]/)].map((s) => String(s || '').trim()).filter((s) => s.length >= 2);
+    const hits = o.data.filter((r) => r.name && namesOf(r).some((n) => n.toLowerCase().includes(q)));
+    if (!hits.length) return null;
+    if (hits.length > 5) return { hit: () => false, label: ' · 단체 ' + hits.length + '곳에 걸리는 말이라 단체 확장은 하지 않았습니다' };
+    const ids = new Set();
+    hits.forEach((r) => { let v = r.act_links; try { v = JSON.parse(v); } catch (e) { v = []; } (v || []).forEach((s) => { const id = pageId(s); if (id) ids.add(id); }); });
+    const terms = [...new Set(hits.flatMap(namesOf).map((s) => s.toLowerCase()))];
+    return {
+      hit: (x) => ids.has(pageId(x.r.url)) || terms.some((n) => ((x.r.title || '') + ' ' + (x.r.summary || '')).toLowerCase().includes(n)),
+      label: ' · 단체 ' + hits.map((r) => r.name).join(', ') + '(별칭 포함)로도 찾음',
+    };
+  }
   function drawActs() {
     pressGroup(document.getElementById('act-mode'), 'mode', state.act);
     const box = document.getElementById('act-list');
@@ -601,10 +621,11 @@ dash.calc('org_counts', {
     if (searching) {
       const lo = state.actFrom && state.actTo && state.actFrom > state.actTo ? state.actTo : state.actFrom;
       const hi = state.actFrom && state.actTo && state.actFrom > state.actTo ? state.actFrom : state.actTo;
+      const ox = orgExpand(q);
       rows = all.filter((x) => (!lo || day(x) >= lo) && (!hi || day(x) <= hi)
-        && (!q || [x.r.title, x.r.summary, parseArr(x.r.regions).join(' '), parseArr(x.r.actors).join(' ')].join(' ').toLowerCase().includes(q)));
+        && (!q || [x.r.title, x.r.summary, parseArr(x.r.regions).join(' '), parseArr(x.r.actors).join(' ')].join(' ').toLowerCase().includes(q) || (ox && ox.hit(x))));
       const span = (lo ? md(lo) + (lo.slice(0, 4) !== today.slice(0, 4) ? '(' + lo.slice(0, 4) + ')' : '') : '처음') + ' ~ ' + (hi ? md(hi) : '끝');
-      note.textContent = '전체 ' + all.length + '건 중 ' + rows.length + '건 찾음 · 기간 ' + span + (rows.length > 100 ? ' · 앞의 100건만 표시' : '') + (d.data.cut ? ' · 가장 오래된 기록 일부는 불러오지 못했습니다' : '');
+      note.textContent = '전체 ' + all.length + '건 중 ' + rows.length + '건 찾음 · 기간 ' + span + (ox ? ox.label : '') + (rows.length > 100 ? ' · 앞의 100건만 표시' : '') + (d.data.cut ? ' · 가장 오래된 기록 일부는 불러오지 못했습니다' : '');
     } else {
       note.textContent = '최근 한 달 활동만 보여줍니다. 검색어나 기간을 넣으면 전체 활동기록에서 찾습니다.';
       if (state.act === 'next') rows = all.filter((x) => day(x) > today).reverse();
