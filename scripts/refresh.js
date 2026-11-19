@@ -26,6 +26,9 @@ const DB = {
   reqs: '3cf7f59fc3de45949e65cebb8c5bd546',
   orgs: '99307abaf9e54e3e8a2abba3fc6df097',
 };
+// 공개 링크: 비공개 노션 주소(p.url) 대신, 웹에 게시된 공개 사이트 주소로 바꾼다(4개 DB 모두 웹 게시 상태여야 함)
+const PUBLIC_SITE = (process.env.NOTION_PUBLIC_SITE || 'https://plume-iron-84e.notion.site').replace(/\/+$/, '');
+const pubUrl = (p) => PUBLIC_SITE + '/' + String(p.id).replace(/-/g, '');
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const write = (name, rows) => { fs.writeFileSync(path.join(out, name), JSON.stringify(rows)); console.log(name + ': ' + rows.length + '행'); };
 const kstDate = (d) => d.toLocaleDateString('sv-SE', { timeZone: 'Asia/Seoul' });
@@ -125,25 +128,25 @@ const dateStart = (p) => (p && p.type === 'date' && p.date ? p.date.start : null
   write('calendar.json', await calendarRows());
 
   const tasks = await queryAll(DB.tasks, [{ property: '마감일', direction: 'ascending' }]);
-  write('tasks.json', tasks.map((p) => ({ url: p.url, name: text(p.properties['Name']), owner: sel(p.properties['담당']), status: sel(p.properties['상태']), due: dateStart(p.properties['마감일']) })));
+  write('tasks.json', tasks.map((p) => ({ url: pubUrl(p), name: text(p.properties['Name']), owner: sel(p.properties['담당']), status: sel(p.properties['상태']), due: dateStart(p.properties['마감일']) })));
 
   // 공개용: 활동 '반응'은 받지 않는다
   const acts = await queryAll(DB.activities, [{ property: '일시', direction: 'descending' }]);
   write('activities.json', acts.map((p) => {
     const start = dateStart(p.properties['일시']);
-    return { url: p.url, title: text(p.properties['활동 내역']), start, is_datetime: start && start.includes('T') ? 1 : 0, kinds: multi(p.properties['활동종류']), regions: multi(p.properties['지역']), reaction: null, actors: multi(p.properties['활동자']), summary: text(p.properties['요약']) };
+    return { url: pubUrl(p), title: text(p.properties['활동 내역']), start, is_datetime: start && start.includes('T') ? 1 : 0, kinds: multi(p.properties['활동종류']), regions: multi(p.properties['지역']), reaction: null, actors: multi(p.properties['활동자']), summary: text(p.properties['요약']) };
   }));
 
   // 공개용: 요구사항 '비고'는 받지 않는다
   const reqs = await queryAll(DB.reqs, [{ property: '최초제기일', direction: 'descending' }]);
-  write('reqs.json', reqs.map((p) => ({ url: p.url, title: text(p.properties['요구내용']), status: sel(p.properties['상태']), kind: sel(p.properties['유형']), owners: multi(p.properties['담당']), term: sel(p.properties['조치기한']), raised: dateStart(p.properties['최초제기일']), note: null, sources: null })));
+  write('reqs.json', reqs.map((p) => ({ url: pubUrl(p), title: text(p.properties['요구내용']), status: sel(p.properties['상태']), kind: sel(p.properties['유형']), owners: multi(p.properties['담당']), term: sel(p.properties['조치기한']), raised: dateStart(p.properties['최초제기일']), note: null, sources: null })));
 
   // 공개용: 단체 '성향'·'비고'는 받지 않는다
   const orgs = await queryAll(DB.orgs, [{ property: '단체명', direction: 'ascending' }]);
   const orgRows = [];
   for (const p of orgs) {
     const a = await relationIds(p, '활동기록'), r = await relationIds(p, '요구사항');
-    orgRows.push({ url: p.url, name: text(p.properties['단체명']), kind: sel(p.properties['단체유형']), regions: multi(p.properties['지역']), scope: sel(p.properties['대상범위']), lean: null, people: text(p.properties['주요 인물']), alias: text(p.properties['별칭·이표기']), note: null, review: sel(p.properties['검수상태']), act_links: JSON.stringify(a), req_links: JSON.stringify(r) });
+    orgRows.push({ url: pubUrl(p), name: text(p.properties['단체명']), kind: sel(p.properties['단체유형']), regions: multi(p.properties['지역']), scope: sel(p.properties['대상범위']), lean: null, people: text(p.properties['주요 인물']), alias: text(p.properties['별칭·이표기']), note: null, review: sel(p.properties['검수상태']), act_links: JSON.stringify(a), req_links: JSON.stringify(r) });
   }
   write('orgs.json', orgRows);
 
