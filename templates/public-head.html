@@ -54,9 +54,9 @@ body { background: var(--color-bg); color: var(--color-fg); font-family: var(--f
 .pa-install-btn:focus-visible { outline: 2px solid var(--color-fg); outline-offset: 2px; }
 @media (max-width: 640px) { .pa-install:not([hidden]) { display: grid; } }
 @media (display-mode: standalone), (display-mode: fullscreen), (display-mode: minimal-ui) { .pa-install { display: none !important; } }
-/* 공개용 모바일: 팀 일정 위의 머리말·요약·지표는 숨긴다 */
+/* 공개용 모바일: 안내줄·요약·지표는 숨기고 제목만 한 줄로 보인다 */
 @media (max-width: 640px) {
-  .pa-public-bar, .pa-head, #kpis { display: none !important; }
+  .pa-public-bar, #kpis, .pa-head .pa-take, #snap-label { display: none !important; }
 }</style>
 <div class="pa-shell">
 <div class="pa-public-bar">
