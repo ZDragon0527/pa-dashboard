@@ -100,8 +100,11 @@
 .pa-tip .d { color: var(--cds-text-secondary); }
 
 /* activity list */
-.pa-range { display: inline-flex; flex-wrap: wrap; align-items: center; gap: var(--cds-gap-xs); font-size: var(--cds-font-size-caption); color: var(--color-fg-muted); }
-.pa-range input { font-size: var(--cds-font-size-caption); padding: 4px 6px; }
+.pa-range { min-width: 0; display: flex; flex-wrap: nowrap; align-items: center; gap: var(--cds-gap-xs); font-size: var(--cds-font-size-caption); color: var(--color-fg-muted); }
+.pa-range > span { flex: none; white-space: nowrap; }
+.pa-range input { flex: 1 1 9.5em; width: 0; min-width: 0; font-size: var(--cds-font-size-caption); padding: 4px 6px; }
+@media (max-width: 640px) { .pa-act-search .pa-range { flex: 1 1 100%; } }
+@media (min-width: 641px) { .pa-range input { flex: none; width: 9.5em; } }
 .pa-act mark { background: color-mix(in srgb, var(--color-warn) 28%, transparent); color: inherit; border-radius: 2px; }
 .pa-acts { display: grid; gap: var(--cds-gap-sm); max-height: 22rem; overflow: auto; min-height: 6rem; }
 .pa-act { display: grid; gap: 2px; padding-bottom: var(--cds-gap-sm); border-bottom: 1px solid var(--color-border-line); }
