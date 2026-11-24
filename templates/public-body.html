@@ -13,9 +13,11 @@
   .pa-head h1::before { content: ""; flex: none; width: 26px; height: 26px; border-radius: 7px; background: url(icons/icon.svg) center / cover; box-shadow: 0 1px 3px rgba(19,42,64,.25); }
   .pa-head .pa-mark { color: var(--color-ok); margin-right: -4px; }
   .pa .pa-mkpi { display: grid; grid-template-columns: repeat(var(--n, 1), minmax(0, 1fr)); gap: var(--cds-gap-sm); }
-  .pa .pa-mkpi.one .pa-mk { flex-direction: row; align-items: baseline; justify-content: space-between; }
-  .pa .pa-mkpi.one .pa-mk .l { font-size: 12.5px; }
-  .pa-note.pa-dup { display: none; }
+  .pa .pa-hd-n { display: inline; margin-right: auto; font-size: 13px; color: var(--color-fg-muted); white-space: nowrap; }
+  .pa-hd-n b { font-size: 16px; font-weight: 700; color: var(--color-fg); font-variant-numeric: tabular-nums; margin-inline: 2px; }
+  #orgs .pa-card-head { justify-content: flex-start; gap: 4px 10px; }
+  #orgs #org-count { white-space: nowrap; }
+  .pa-card.pa-collapsed :is(#task-status, #req-status, .pa-act-note) { display: none; } /* 접힌 카드에서는 상태 버튼·설명을 숨기고, 세부 화면에서는 그대로 보여 준다 */
   .pa .pa-hint { display: block; margin: calc(-1 * var(--cds-gap-xs)) 2px 0; font-size: 12.5px; line-height: 1.4; color: var(--color-fg-muted); word-break: keep-all; text-wrap: balance; }
   .pa-head .pa-today:has(#today-label:empty) { display: none; }
   .pa-head .pa-today { flex: none; padding: 3px 9px; border-radius: 999px; background: color-mix(in srgb, var(--color-fg) 6%, transparent); }
@@ -23,6 +25,7 @@
 @media (max-width: 379px) { .pa-head .pa-today { display: none; } }
 .pa-hint { display: none; }
 .pa-mkpi { display: none; }
+.pa-hd-n { display: none; }
 .pa-mk { display: flex; flex-direction: column-reverse; gap: 2px; min-width: 0; padding: 8px 10px; border-radius: var(--cds-radius); border: 1px solid var(--color-border-line); background: color-mix(in srgb, var(--color-fg) 3%, var(--color-panel)); }
 .pa-mk .l { font-size: 11px; line-height: 1.3; color: var(--color-fg-muted); word-break: keep-all; }
 .pa-mk .v { font-size: 20px; line-height: 1.15; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--color-fg); }
@@ -274,7 +277,7 @@ html.pa-max-lock, html.pa-max-lock body { overflow: hidden; }
     <section class="pa-card" id="activities">
       <div class="pa-card-head">
         <h2>활동기록</h2>
-        <span class="pa-note">주별 활동 건수 · 최근 한 달과 다음 2주</span>
+        <span class="pa-note pa-act-note">주별 활동 건수 · 최근 한 달과 다음 2주</span>
       </div>
       <div class="pa-chart" id="act-chart" data-source="act_weeks"></div>
       <div class="pa-tools pa-act-search" id="act-search">
@@ -482,8 +485,16 @@ dash.calc('org_counts', {
       }));
     };
     const ok = (d) => d.status === 'ok';
+    // 제목 바로 옆에 한 줄로 붙는 수치 (예: 팀 일정 · 오늘 3건)
+    const hd = (id, pre, n) => {
+      const head = document.querySelector('#' + id + ' > .pa-card-head'); if (!head) return;
+      let sp = head.querySelector(':scope > .pa-hd-n');
+      if (n == null) { if (sp) sp.remove(); return; }
+      if (!sp) { sp = el('span', 'pa-hd-n'); const h2 = head.querySelector('h2'); if (h2) h2.after(sp); else head.prepend(sp); }
+      sp.replaceChildren(pre + ' ', el('b', null, String(n)), '건');
+    };
     const cal = dash.data('calendar');
-    mk('schedule', [{ label: state.cal === 'all' ? '오늘 일정 · 전체' : '오늘 일정 · 대외활동', unit: '건', val: ok(cal) ? cal.data.filter((r) => r.start.slice(0, 10) === today && (state.cal === 'all' || !isOff(r.title))).length : null }]);
+    hd('schedule', '오늘', ok(cal) ? cal.data.filter((r) => r.start.slice(0, 10) === today && (state.cal === 'all' || !isOff(r.title))).length : null);
     const ts = dash.data('task_stats'), to = dash.data('task_overdue');
     const over = ok(to) && to.data[0] ? to.data[0].n : 0;
     mk('tasks-card', [
@@ -500,9 +511,7 @@ dash.calc('org_counts', {
     ]);
     const aw = dash.data('act_weeks');
     const wk = ok(aw) ? aw.data.find((r) => r.week === mondayOf(today)) : null;
-    mk('activities', [{ label: '이번 주 활동기록 (월~일)', unit: '건', val: ok(aw) ? (wk ? wk.n : 0) : null }]);
-    const og = dash.data('orgs');
-    mk('orgs', [{ label: '등록된 단체', unit: '개', val: ok(og) ? og.data.filter((r) => r.name).length : null }]);
+    hd('activities', '이번 주', ok(aw) ? (wk ? wk.n : 0) : null);
   }
 
   // ---- takeaway
@@ -758,16 +767,16 @@ dash.calc('org_counts', {
     const tb = document.querySelector('#orgs-tbl tbody');
     const det = document.getElementById('org-detail'), wrap = document.getElementById('org-results'), hint = document.getElementById('org-hint'), count = document.getElementById('org-count');
     const q = state.orgQ;
-    if (d.status === 'error' || d.status === 'connect' || d.status === 'declined') { det.hidden = true; hint.hidden = true; wrap.hidden = false; count.textContent = ''; count.classList.remove('pa-dup'); return failRow(tb, 6); }
+    if (d.status === 'error' || d.status === 'connect' || d.status === 'declined') { det.hidden = true; hint.hidden = true; wrap.hidden = false; count.textContent = ''; return failRow(tb, 6); }
     wrap.hidden = !q; hint.hidden = !!q;
-    if (!q) { tb.replaceChildren(); det.hidden = true; state.orgSel = null; count.classList.add('pa-dup'); count.textContent = d.status === 'ok' ? d.data.filter((r) => r.name).length + '개 단체 등록' : ''; return; }
+    if (!q) { tb.replaceChildren(); det.hidden = true; state.orgSel = null; count.textContent = d.status === 'ok' ? '총 ' + d.data.filter((r) => r.name).length + '개 단체 등록' : ''; return; }
     if (d.status !== 'ok') return;
     const cnt = new Map(c.status === 'ok' ? c.data.map((x) => [x.url, x]) : []);
     const rows0 = d.data.filter((r) => r.name).map((r) => ({ ...r, _reg: parseArr(r.regions) }));
     const acts = (r) => (cnt.get(r.url) || { acts: 0 }).acts;
     const rows = rows0.filter((r) => [r.name, r.alias, r.people, r.note].join(' ').toLowerCase().includes(q))
       .sort((a, b) => acts(b) - acts(a) || (a.name < b.name ? -1 : 1));
-    count.classList.remove('pa-dup'); count.textContent = rows0.length + '개 중 ' + rows.length + '개 찾음';
+    count.textContent = rows0.length + '개 중 ' + rows.length + '개 찾음';
     det.hidden = true; // 상세는 표 안, 누른 행 바로 아래에 펼친다
     const out = [];
     rows.slice(0, 300).forEach((r, i) => {
