@@ -12,10 +12,12 @@
   .pa-head h1 { display: flex; align-items: center; gap: 8px; font-family: var(--font-anthropic-sans); font-weight: 800; font-size: 19px; line-height: 26px; letter-spacing: -.02em; white-space: nowrap; }
   .pa-head h1::before { content: ""; flex: none; width: 26px; height: 26px; border-radius: 7px; background: url(icons/icon.svg) center / cover; box-shadow: 0 1px 3px rgba(19,42,64,.25); }
   .pa-head .pa-mark { color: var(--color-ok); margin-right: -4px; }
+  .pa .pa-hint { display: block; margin: calc(-1 * var(--cds-gap-xs)) 2px 0; font-size: 12.5px; line-height: 1.4; color: var(--color-fg-muted); word-break: keep-all; text-wrap: balance; }
   .pa-head .pa-today:has(#today-label:empty) { display: none; }
   .pa-head .pa-today { flex: none; padding: 3px 9px; border-radius: 999px; background: color-mix(in srgb, var(--color-fg) 6%, transparent); }
 }
 @media (max-width: 379px) { .pa-head .pa-today { display: none; } }
+.pa-hint { display: none; }
 .pa-take { margin: var(--cds-gap-sm) 0 0; padding: var(--cds-pad-md) var(--cds-pad-lg); max-width: 72ch; font-size: var(--cds-font-size-heading); line-height: 1.6; color: var(--color-fg); background: color-mix(in srgb, var(--color-ok) 9%, var(--color-panel)); border: 1px solid color-mix(in srgb, var(--color-ok) 30%, var(--color-border-line)); border-radius: var(--cds-radius); text-wrap: pretty; }
 .pa-take b { color: var(--color-fg); font-weight: 700; }
 .pa-take-line { display: block; }
@@ -203,6 +205,7 @@ html.pa-max-lock, html.pa-max-lock body { overflow: hidden; }
     </div>
     <div class="pa-today"><div id="today-label"></div><div id="snap-label" data-source="snapshot" data-field="at" data-row="0">—</div></div>
   </header>
+  <p class="pa-hint">항목 카드의 빈 곳을 터치하면 세부 화면이 열립니다.</p>
 
   <section class="pa-kpis" id="kpis" aria-label="핵심 지표">
     <div class="pa-kpi"><span class="lbl">진행 중 업무</span><span class="val dash-skeleton" id="k-doing" data-source="task_stats" data-field="n" data-where="status=진행 중⏳️">—</span><span class="sub">팀 업무 추진현황</span></div>
