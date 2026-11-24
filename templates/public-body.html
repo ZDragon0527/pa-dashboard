@@ -151,9 +151,11 @@
 .pa-fold-title { font-size: var(--cds-font-size-heading); font-weight: var(--cds-font-weight-medium); }
 @media (max-width: 640px) {
   .pa-fold { display: inline-flex; }
+  .pa-card:not(.pa-install) .pa-fold { display: none; } /* 항목 카드는 늘 접힌 채로 두고, 카드를 눌러 세부 화면(확대 보기)으로 본다. 설치 안내만 스위치 유지 */
   .pa-fold-head { display: flex; }
   .pa-collapsed > :not(.pa-card-head):not(.pa-fold-head):not(.pa-keep) { display: none !important; }
   .pa-card.pa-collapsed { gap: 0; }
+  .pa-card.pa-collapsed:not(.pa-install) { gap: var(--cds-gap-sm); }
   #tasks-tbl td.wrap { min-width: 0; }
   #tasks-tbl th, #tasks-tbl td { padding-inline: 5px; }
   #tasks-tbl td:first-child, #tasks-tbl th:first-child { padding-left: 0; }
