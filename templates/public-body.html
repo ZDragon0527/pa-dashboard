@@ -17,7 +17,8 @@
   .pa-hd-n b { font-size: 16px; font-weight: 700; color: var(--color-fg); font-variant-numeric: tabular-nums; margin-inline: 2px; }
   #orgs .pa-card-head { justify-content: flex-start; gap: 4px 10px; }
   #orgs #org-count { white-space: nowrap; }
-  .pa-card.pa-collapsed :is(#task-status, #req-status, .pa-act-note) { display: none; } /* 접힌 카드에서는 상태 버튼·설명을 숨기고, 세부 화면에서는 그대로 보여 준다 */
+  .pa .pa-mobonly { display: inline-flex; }
+  .pa-card.pa-collapsed :is(#req-status, .pa-act-note) { display: none; } /* 접힌 카드에서는 상태 버튼·설명을 숨기고, 세부 화면에서는 그대로 보여 준다 */
   .pa .pa-hint { display: block; margin: calc(-1 * var(--cds-gap-xs)) 2px 0; font-size: 12.5px; line-height: 1.4; color: var(--color-fg-muted); word-break: keep-all; text-wrap: balance; }
   .pa-head .pa-today:has(#today-label:empty) { display: none; }
   .pa-head .pa-today { flex: none; padding: 3px 9px; border-radius: 999px; background: color-mix(in srgb, var(--color-fg) 6%, transparent); }
@@ -26,6 +27,11 @@
 .pa-hint { display: none; }
 .pa-mkpi { display: none; }
 .pa-hd-n { display: none; }
+button.pa-mk { font: inherit; text-align: left; color: inherit; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+button.pa-mk:active { background: color-mix(in srgb, var(--color-fg) 9%, var(--color-panel)); }
+button.pa-mk:focus-visible { outline: 2px solid var(--color-fg); outline-offset: 2px; }
+.pa-mobonly { display: none; }
+.pa-filters { display: grid; gap: var(--cds-gap-sm); }
 .pa-mk { display: flex; flex-direction: column-reverse; gap: 2px; min-width: 0; padding: 8px 10px; border-radius: var(--cds-radius); border: 1px solid var(--color-border-line); background: color-mix(in srgb, var(--color-fg) 3%, var(--color-panel)); }
 .pa-mk .l { font-size: 11px; line-height: 1.3; color: var(--color-fg-muted); word-break: keep-all; }
 .pa-mk .v { font-size: 20px; line-height: 1.15; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--color-fg); }
@@ -469,6 +475,24 @@ dash.calc('org_counts', {
   }
 
   // ---- 모바일 카드별 핵심 수치 (휴대폰에서만 보임)
+  // 수치 상자를 누르면 해당 조건으로 거른 세부 화면을 연다
+  const goTask = (st) => { state.taskStatus = st; state.taskOwner = ''; drawTasks(); };
+  const goReq = (st) => { state.reqStatus = st; drawReqs(); };
+  // 휴대폰의 팀 업무 세부 화면에서는 상태·담당 필터를 수치 상자 아래로 모은다(PC는 원래 자리)
+  const mqMobile = window.matchMedia('(max-width: 640px)');
+  function placeTaskFilters() {
+    const sec = document.getElementById('tasks-card'), head = sec.querySelector(':scope > .pa-card-head'), box = sec.querySelector(':scope > .pa-mkpi');
+    const st = document.getElementById('task-status'), ow = document.getElementById('task-owner');
+    let w = document.getElementById('task-filters');
+    if (mqMobile.matches) {
+      if (!box) return;
+      if (!w) { w = el('div', 'pa-filters'); w.id = 'task-filters'; box.after(w); }
+      w.append(st, ow);
+    } else if (w) {
+      head.append(st); sec.insertBefore(ow, sec.querySelector(':scope > .pa-tbl-wrap')); w.remove();
+    }
+  }
+  mqMobile.addEventListener('change', placeTaskFilters);
   function drawMk() {
     const nOf = (rows, status) => { const r = rows.find((row) => row.status === status); return r ? r.n : 0; };
     const mondayOf = (ds) => { const d = new Date(ds + 'T00:00:00Z'); d.setUTCDate(d.getUTCDate() - ((d.getUTCDay() + 6) % 7)); return d.toISOString().slice(0, 10); };
@@ -479,7 +503,8 @@ dash.calc('org_counts', {
       box.style.setProperty('--n', items.length);
       box.classList.toggle('one', items.length === 1);
       box.replaceChildren(...items.map((it) => {
-        const t = el('div', 'pa-mk' + (it.alert ? ' alert' : '') + (it.val == null ? ' dash-skeleton' : ''));
+        const t = el(it.go ? 'button' : 'div', 'pa-mk' + (it.alert ? ' alert' : '') + (it.val == null ? ' dash-skeleton' : ''));
+        if (it.go) { t.type = 'button'; t.setAttribute('aria-label', it.label + ' ' + (it.val == null ? '' : it.val + (it.unit || '')) + ' 세부 화면 보기'); t.addEventListener('click', () => { it.go(); if (window.paOpenCard) window.paOpenCard(id, t); }); }
         const v = el('span', 'v', it.val == null ? '—' : String(it.val)); if (it.val != null && it.unit) v.append(el('small', null, it.unit));
         t.append(v, el('span', 'l', it.label)); return t;
       }));
@@ -498,16 +523,17 @@ dash.calc('org_counts', {
     const ts = dash.data('task_stats'), to = dash.data('task_overdue');
     const over = ok(to) && to.data[0] ? to.data[0].n : 0;
     mk('tasks-card', [
-      { label: '진행 중', unit: '건', val: ok(ts) ? nOf(ts.data, '진행 중⏳️') : null },
-      { label: '추진할 것', unit: '건', val: ok(ts) ? nOf(ts.data, '추진할 것💡') : null },
-      { label: '기한 초과', unit: '건', val: ok(to) ? over : null, alert: over > 0 },
+      { label: '진행 중', unit: '건', val: ok(ts) ? nOf(ts.data, '진행 중⏳️') : null, go: () => goTask('진행 중⏳️') },
+      { label: '추진할 것', unit: '건', val: ok(ts) ? nOf(ts.data, '추진할 것💡') : null, go: () => goTask('추진할 것💡') },
+      { label: '기한 초과', unit: '건', val: ok(to) ? over : null, alert: over > 0, go: () => goTask('__over') },
     ]);
+    placeTaskFilters();
     const rs = dash.data('req_stats'), rm = dash.data('req_summary');
     const open = ok(rs) ? nOf(rs.data, '미조치') : 0;
     mk('requests', [
-      { label: '미조치', unit: '건', val: ok(rs) ? open : null, alert: open > 0 },
-      { label: '검토중', unit: '건', val: ok(rs) ? nOf(rs.data, '검토중') : null },
-      { label: '완료율', val: ok(rm) && rm.data[0] ? pct(rm.data[0].done_rate) : null },
+      { label: '미조치', unit: '건', val: ok(rs) ? open : null, alert: open > 0, go: () => goReq('미조치') },
+      { label: '검토중', unit: '건', val: ok(rs) ? nOf(rs.data, '검토중') : null, go: () => goReq('검토중') },
+      { label: '완료율', val: ok(rm) && rm.data[0] ? pct(rm.data[0].done_rate) : null, go: () => goReq('조치완료') },
     ]);
     const aw = dash.data('act_weeks');
     const wk = ok(aw) ? aw.data.find((r) => r.week === mondayOf(today)) : null;
@@ -594,9 +620,9 @@ dash.calc('org_counts', {
     if (d.status !== 'ok') return;
     const since = addDays(today, -14);
     const named = d.data.filter((r) => r.name);
-    const inView = (r, s) => r.status === s && (s !== '완료✨' || (r.due && r.due.slice(0, 10) >= since));
-    const statuses = [['진행 중⏳️', '진행 중'], ['추진할 것💡', '추진할 것'], ['아이디어 💡', '아이디어'], ['완료✨', '최근 2주 완료']];
-    document.getElementById('task-status').replaceChildren(...statuses.map(([k, lbl]) => [k, lbl, named.filter((r) => inView(r, k)).length]).filter((x) => x[2]).map(([k, lbl, n]) => chip(k, lbl + ' ' + n, state.taskStatus === k)));
+    const inView = (r, s) => (s === '__over' ? (r.status === '진행 중⏳️' && r.due && r.due.slice(0, 10) < today) : r.status === s && (s !== '완료✨' || (r.due && r.due.slice(0, 10) >= since)));
+    const statuses = [['진행 중⏳️', '진행 중'], ['__over', '기한 초과'], ['추진할 것💡', '추진할 것'], ['아이디어 💡', '아이디어'], ['완료✨', '최근 2주 완료']];
+    document.getElementById('task-status').replaceChildren(...statuses.map(([k, lbl]) => [k, lbl, named.filter((r) => inView(r, k)).length]).filter((x) => x[2]).map(([k, lbl, n]) => { const b = chip(k, lbl + ' ' + n, state.taskStatus === k); if (k === '__over') b.classList.add('pa-mobonly'); return b; }));
     const owners = [...new Set(named.map((r) => r.owner).filter(Boolean))].sort();
     document.getElementById('task-owner').replaceChildren(...[['', '전체 담당'], ...owners.map((o) => [o, o])].map(([v, lbl]) => chip(v, lbl, state.taskOwner === v)));
     const rows = named.filter((r) => inView(r, state.taskStatus) && (!state.taskOwner || r.owner === state.taskOwner))
@@ -928,6 +954,7 @@ dash.calc('org_counts', {
     pushed = false;
   }
 
+  window.paOpenCard = (id, from) => { const sec = document.getElementById(id); if (sec) open(sec, from); }; // 수치 상자에서 세부 화면을 열 때 사용
   IDS.forEach((id) => {
     const sec = document.getElementById(id);
     const head = sec && sec.querySelector(':scope > .pa-card-head');
