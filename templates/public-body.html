@@ -12,12 +12,23 @@
   .pa-head h1 { display: flex; align-items: center; gap: 8px; font-family: var(--font-anthropic-sans); font-weight: 800; font-size: 19px; line-height: 26px; letter-spacing: -.02em; white-space: nowrap; }
   .pa-head h1::before { content: ""; flex: none; width: 26px; height: 26px; border-radius: 7px; background: url(icons/icon.svg) center / cover; box-shadow: 0 1px 3px rgba(19,42,64,.25); }
   .pa-head .pa-mark { color: var(--color-ok); margin-right: -4px; }
+  .pa .pa-mkpi { display: grid; grid-template-columns: repeat(var(--n, 1), minmax(0, 1fr)); gap: var(--cds-gap-sm); }
+  .pa .pa-mkpi.one .pa-mk { flex-direction: row; align-items: baseline; justify-content: space-between; }
+  .pa .pa-mkpi.one .pa-mk .l { font-size: 12.5px; }
+  .pa-note.pa-dup { display: none; }
   .pa .pa-hint { display: block; margin: calc(-1 * var(--cds-gap-xs)) 2px 0; font-size: 12.5px; line-height: 1.4; color: var(--color-fg-muted); word-break: keep-all; text-wrap: balance; }
   .pa-head .pa-today:has(#today-label:empty) { display: none; }
   .pa-head .pa-today { flex: none; padding: 3px 9px; border-radius: 999px; background: color-mix(in srgb, var(--color-fg) 6%, transparent); }
 }
 @media (max-width: 379px) { .pa-head .pa-today { display: none; } }
 .pa-hint { display: none; }
+.pa-mkpi { display: none; }
+.pa-mk { display: flex; flex-direction: column-reverse; gap: 2px; min-width: 0; padding: 8px 10px; border-radius: var(--cds-radius); border: 1px solid var(--color-border-line); background: color-mix(in srgb, var(--color-fg) 3%, var(--color-panel)); }
+.pa-mk .l { font-size: 11px; line-height: 1.3; color: var(--color-fg-muted); word-break: keep-all; }
+.pa-mk .v { font-size: 20px; line-height: 1.15; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--color-fg); }
+.pa-mk .v small { font-size: 11px; font-weight: 500; margin-left: 1px; color: var(--color-fg-muted); }
+.pa-mk.alert .v { color: var(--color-bad); }
+.pa-mk.dash-skeleton .v { color: transparent; }
 .pa-take { margin: var(--cds-gap-sm) 0 0; padding: var(--cds-pad-md) var(--cds-pad-lg); max-width: 72ch; font-size: var(--cds-font-size-heading); line-height: 1.6; color: var(--color-fg); background: color-mix(in srgb, var(--color-ok) 9%, var(--color-panel)); border: 1px solid color-mix(in srgb, var(--color-ok) 30%, var(--color-border-line)); border-radius: var(--cds-radius); text-wrap: pretty; }
 .pa-take b { color: var(--color-fg); font-weight: 700; }
 .pa-take-line { display: block; }
@@ -151,9 +162,11 @@
 .pa-fold-title { font-size: var(--cds-font-size-heading); font-weight: var(--cds-font-weight-medium); }
 @media (max-width: 640px) {
   .pa-fold { display: inline-flex; }
+  .pa-card:not(.pa-install) .pa-fold { display: none; } /* 항목 카드는 늘 접힌 채로 두고, 카드를 눌러 세부 화면(확대 보기)으로 본다. 설치 안내만 스위치 유지 */
   .pa-fold-head { display: flex; }
   .pa-collapsed > :not(.pa-card-head):not(.pa-fold-head):not(.pa-keep) { display: none !important; }
   .pa-card.pa-collapsed { gap: 0; }
+  .pa-card.pa-collapsed:not(.pa-install) { gap: var(--cds-gap-sm); }
   #tasks-tbl td.wrap { min-width: 0; }
   #tasks-tbl th, #tasks-tbl td { padding-inline: 5px; }
   #tasks-tbl td:first-child, #tasks-tbl th:first-child { padding-left: 0; }
@@ -407,7 +420,7 @@ dash.calc('org_counts', {
 
   // ---- controls
   const onChip = (id, fn) => document.getElementById(id).addEventListener('click', (e) => { const b = e.target.closest('.pa-chip'); if (b) fn(b); });
-  onChip('cal-mode', (b) => { state.cal = b.dataset.mode; drawCalendar(); });
+  onChip('cal-mode', (b) => { state.cal = b.dataset.mode; drawCalendar(); drawMk(); });
   onChip('act-mode', (b) => { state.act = b.dataset.mode; drawActs(); });
   const actQ = document.getElementById('act-q'), actFrom = document.getElementById('act-from'), actTo = document.getElementById('act-to');
   actQ.addEventListener('input', () => { state.actQ = actQ.value.trim().toLowerCase(); drawActs(); });
@@ -450,6 +463,46 @@ dash.calc('org_counts', {
     document.getElementById('k-open-box').classList.toggle('alert', open > 0);
     set('k-rate', rm.status, rm.status === 'ok' && rm.data[0] ? pct(rm.data[0].done_rate) : '');
     document.getElementById('k-total').textContent = rm.status === 'ok' && rm.data[0] ? String(rm.data[0].total) : '—';
+  }
+
+  // ---- 모바일 카드별 핵심 수치 (휴대폰에서만 보임)
+  function drawMk() {
+    const nOf = (rows, status) => { const r = rows.find((row) => row.status === status); return r ? r.n : 0; };
+    const mondayOf = (ds) => { const d = new Date(ds + 'T00:00:00Z'); d.setUTCDate(d.getUTCDate() - ((d.getUTCDay() + 6) % 7)); return d.toISOString().slice(0, 10); };
+    const mk = (id, items) => {
+      const sec = document.getElementById(id); if (!sec) return;
+      let box = sec.querySelector(':scope > .pa-mkpi');
+      if (!box) { box = el('div', 'pa-mkpi pa-keep'); box.setAttribute('role', 'group'); box.setAttribute('aria-label', '핵심 수치'); const head = sec.querySelector(':scope > .pa-card-head'); if (!head) return; head.after(box); }
+      box.style.setProperty('--n', items.length);
+      box.classList.toggle('one', items.length === 1);
+      box.replaceChildren(...items.map((it) => {
+        const t = el('div', 'pa-mk' + (it.alert ? ' alert' : '') + (it.val == null ? ' dash-skeleton' : ''));
+        const v = el('span', 'v', it.val == null ? '—' : String(it.val)); if (it.val != null && it.unit) v.append(el('small', null, it.unit));
+        t.append(v, el('span', 'l', it.label)); return t;
+      }));
+    };
+    const ok = (d) => d.status === 'ok';
+    const cal = dash.data('calendar');
+    mk('schedule', [{ label: state.cal === 'all' ? '오늘 일정 · 전체' : '오늘 일정 · 대외활동', unit: '건', val: ok(cal) ? cal.data.filter((r) => r.start.slice(0, 10) === today && (state.cal === 'all' || !isOff(r.title))).length : null }]);
+    const ts = dash.data('task_stats'), to = dash.data('task_overdue');
+    const over = ok(to) && to.data[0] ? to.data[0].n : 0;
+    mk('tasks-card', [
+      { label: '진행 중', unit: '건', val: ok(ts) ? nOf(ts.data, '진행 중⏳️') : null },
+      { label: '추진할 것', unit: '건', val: ok(ts) ? nOf(ts.data, '추진할 것💡') : null },
+      { label: '기한 초과', unit: '건', val: ok(to) ? over : null, alert: over > 0 },
+    ]);
+    const rs = dash.data('req_stats'), rm = dash.data('req_summary');
+    const open = ok(rs) ? nOf(rs.data, '미조치') : 0;
+    mk('requests', [
+      { label: '미조치', unit: '건', val: ok(rs) ? open : null, alert: open > 0 },
+      { label: '검토중', unit: '건', val: ok(rs) ? nOf(rs.data, '검토중') : null },
+      { label: '완료율', val: ok(rm) && rm.data[0] ? pct(rm.data[0].done_rate) : null },
+    ]);
+    const aw = dash.data('act_weeks');
+    const wk = ok(aw) ? aw.data.find((r) => r.week === mondayOf(today)) : null;
+    mk('activities', [{ label: '이번 주 활동기록 (월~일)', unit: '건', val: ok(aw) ? (wk ? wk.n : 0) : null }]);
+    const og = dash.data('orgs');
+    mk('orgs', [{ label: '등록된 단체', unit: '개', val: ok(og) ? og.data.filter((r) => r.name).length : null }]);
   }
 
   // ---- takeaway
@@ -705,16 +758,16 @@ dash.calc('org_counts', {
     const tb = document.querySelector('#orgs-tbl tbody');
     const det = document.getElementById('org-detail'), wrap = document.getElementById('org-results'), hint = document.getElementById('org-hint'), count = document.getElementById('org-count');
     const q = state.orgQ;
-    if (d.status === 'error' || d.status === 'connect' || d.status === 'declined') { det.hidden = true; hint.hidden = true; wrap.hidden = false; count.textContent = ''; return failRow(tb, 6); }
+    if (d.status === 'error' || d.status === 'connect' || d.status === 'declined') { det.hidden = true; hint.hidden = true; wrap.hidden = false; count.textContent = ''; count.classList.remove('pa-dup'); return failRow(tb, 6); }
     wrap.hidden = !q; hint.hidden = !!q;
-    if (!q) { tb.replaceChildren(); det.hidden = true; state.orgSel = null; count.textContent = d.status === 'ok' ? d.data.filter((r) => r.name).length + '개 단체 등록' : ''; return; }
+    if (!q) { tb.replaceChildren(); det.hidden = true; state.orgSel = null; count.classList.add('pa-dup'); count.textContent = d.status === 'ok' ? d.data.filter((r) => r.name).length + '개 단체 등록' : ''; return; }
     if (d.status !== 'ok') return;
     const cnt = new Map(c.status === 'ok' ? c.data.map((x) => [x.url, x]) : []);
     const rows0 = d.data.filter((r) => r.name).map((r) => ({ ...r, _reg: parseArr(r.regions) }));
     const acts = (r) => (cnt.get(r.url) || { acts: 0 }).acts;
     const rows = rows0.filter((r) => [r.name, r.alias, r.people, r.note].join(' ').toLowerCase().includes(q))
       .sort((a, b) => acts(b) - acts(a) || (a.name < b.name ? -1 : 1));
-    count.textContent = rows0.length + '개 중 ' + rows.length + '개 찾음';
+    count.classList.remove('pa-dup'); count.textContent = rows0.length + '개 중 ' + rows.length + '개 찾음';
     det.hidden = true; // 상세는 표 안, 누른 행 바로 아래에 펼친다
     const out = [];
     rows.slice(0, 300).forEach((r, i) => {
@@ -755,7 +808,7 @@ dash.calc('org_counts', {
   }
   window.paRedraw = () => { drawActChart(); drawOrgs(); };
   dash.onData(() => {
-    drawSnap(); drawKpis(); drawTakeaway(); drawCalendar(); drawTasks(); drawReqs(); drawActChart(); drawActs(); drawOrgs();
+    drawSnap(); drawKpis(); drawMk(); drawTakeaway(); drawCalendar(); drawTasks(); drawReqs(); drawActChart(); drawActs(); drawOrgs();
   });
 })();
 </script>
@@ -788,6 +841,11 @@ dash.calc('org_counts', {
     // 접힌 상태에서도 보여 줄 부분(요구사항: 상태 버튼·검색 / 활동기록: 검색)
     const keep = { requests: ['#req-status', ':scope > .pa-tools'], activities: ['#act-search'] }[sec.id] || [];
     keep.forEach((q) => { const n = sec.querySelector(q); if (n) n.classList.add('pa-keep'); });
+    // 활동기록의 '검색 지우기'를 누르면 자동으로 펼쳐졌던 카드를 다시 접는다(확대 보기 중에는 그대로 둔다)
+    if (sec.id === 'activities') {
+      const clr = document.getElementById('act-clear');
+      if (clr) clr.addEventListener('click', (e) => { if (!sec.classList.contains('pa-collapsed') && !sec.classList.contains('pa-max')) { e.stopPropagation(); sw.click(); } }); // 위로 올라가 '버튼을 누르면 펼침' 동작이 다시 펼치지 않도록 막는다
+    }
     // 접힌 채로 검색하거나 상태 버튼을 누르면 결과가 보이도록 자동으로 펼친다
     const open = () => { if (sec.classList.contains('pa-collapsed')) sw.click(); };
     sec.querySelectorAll('.pa-keep').forEach((n) => {
